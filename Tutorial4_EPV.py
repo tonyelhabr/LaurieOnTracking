@@ -88,7 +88,21 @@ mviz.plot_events(
 )
 #%%
 # Calculate value-added for assist and plot expected value surface
-event_number = 822  # away team first goal
+event_id = 822  # away team first goal
+#%%
+import numpy as np
+#%%
+
+pass_frame = events.loc[event_id]['Start Frame']
+pass_team = events.loc[event_id].Team
+ball_start_pos = np.array(
+    [events.loc[event_id]['Start X'], events.loc[event_id]['Start Y']]
+)
+# tracking_home[[]]
+pass_team
+#%%
+
+#%%
 EEPV_added, EPV_diff = mepv.calculate_epv_added(
     event_number, events, tracking_home, tracking_away, GK_numbers, EPV, params
 )

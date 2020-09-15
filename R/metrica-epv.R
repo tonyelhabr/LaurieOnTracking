@@ -24,7 +24,7 @@
 }
 
 
-read_epv_grid <- memoise::memoise({
+import_epv_grid <- memoise::memoise({
   function(path = file.path('data', 'EPV_grid.csv')) {
     # res <- read_delim(path, delim = ',')
     # res <- read.table(path, sep = ',') %>% as.matrix()
@@ -63,7 +63,7 @@ read_epv_grid <- memoise::memoise({
 }
 
 
-plot_epv <- function(epv_grid = read_epv_grid(), attack_direction = 1, ...) {
+plot_epv <- function(epv_grid = import_epv_grid(), attack_direction = 1, ...) {
   if(attack_direction == -1) {
     epv_grid <- epv_grid %>% mutate(across(value, ~.x * -1))
   }

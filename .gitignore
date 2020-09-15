@@ -3,5 +3,6 @@
 .RData
 .Ruserdata
 data/**
+output/**
 .vscode/**
 __pycache__
