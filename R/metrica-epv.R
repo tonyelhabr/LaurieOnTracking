@@ -36,6 +36,19 @@ import_epv_grid <- memoise::memoise({
   }
 })
 
+get_epv <- function(x, y, epv_grid = import_epv_grid()) {
+  dims <- .get_dims_metrica()
+  dims
+  epv_grid_trans <-
+    epv_grid %>% 
+    mutate(
+      across(x, ~(.x - dims[2]/2)),
+      across(y, ~(.x - dims[1]/2))
+    )
+  epv_grid_trans
+  epv_grid_trans %>% skimr::skim()
+}
+
 .get_pitch <- function(pitch_fill = 'white', pitch_color = 'black', limits = FALSE) {
   ggsoccer::annotate_pitch(
     fill = pitch_fill, 
@@ -43,7 +56,6 @@ import_epv_grid <- memoise::memoise({
     # limits = limits,
     dimension = ggsoccer::pitch_international
   )
-  xlim
 }
 
 .pitch_gg <- function(pitch = .get_pitch(), ...) {
@@ -55,7 +67,7 @@ import_epv_grid <- memoise::memoise({
       #   xlim = xlim,
       #   ylim = ylim
       # ),
-      coord_flip(),
+      # coord_flip(),
       ggsoccer::theme_pitch(), # changing the default aspect ratio cuz it looks weird
       theme(legend.position = 'none')
     )

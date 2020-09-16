@@ -130,6 +130,17 @@ import_tracking_data <-
     
     suppressWarnings(data <- read_csv(path, skip = 2))
     res_init <- data %>% .fix_tracking_names(side = side)
+    # res_init %>% 
+    #   filter(frame == .frame) %>%
+    #   select(matches('_x$')) %>% 
+    #   # glimpse()
+    #   mutate(
+    #     across(matches('_x$'), ~{(.x - 0.5) * 106})
+    #   ) %>% 
+    #   # mutate(
+    #   #   across(matches('_x$'), ~{(.x + (106 * 0.5)) / (106 * 1)})
+    #   # ) %>% 
+    #   glimpse()
     if(!postprocess) {
       return(res_init)
     }

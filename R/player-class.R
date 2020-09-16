@@ -84,6 +84,7 @@ player <-
     assertthat::assert_that(all(nms_req %in% names(tracking)))
     
     frame <- tracking %>% filter(frame == !!start_frame, player == player_id)
+    # browser()
     assertthat::assert_that(nrow(frame) == 1L)
 
     
@@ -123,7 +124,7 @@ player <-
 }
 
 format.player <- function(x, ...) {
-  info <- sprintf('`player_id = %s`%s on %s team is located at `(%.2f, %.2f)` with velocity = `<%.1f, %.1f>` and has `tti = %.2f` and `ppcf = %.3f`', field(x, 'player_id'), ifelse(field(x, 'is_gk'), ' (goalkeeper)', ''), field(x, 'side'), field(x, 'x'), field(x, 'y'), field(x, 'x_v'), field(x, 'y_v'), field(x, 'tti'), field(x, 'ppcf'))
+  info <- sprintf('`player_id = %s`%s on %s team (%s) is located at `(%.2f, %.2f)` with velocity = `<%.1f, %.1f>` and has `tti = %.2f` and `ppcf = %.3f`', field(x, 'player_id'), ifelse(field(x, 'is_gk'), ' (goalkeeper)', ''), field(x, 'side'), ifelse(field(x, 'is_attack'), 'attacking', 'defending'), field(x, 'x'), field(x, 'y'), field(x, 'x_v'), field(x, 'y_v'), field(x, 'tti'), field(x, 'ppcf'))
   # if(field(x, 'is_gk')) {
   #   info <- sprintf('%s. Player is the goalkeeper', info)
   # }
@@ -138,9 +139,15 @@ obj_print_data.player <- function(x) {
   cat(format(x), sep = '\n')
 }
 
+.norm_vec <- function(x) sqrt(sum(x^2))
+
 # norm(matrix(c(1, 2, 4, 2.5), nrow = 2, byrow = TRUE))
 .norm <- function(x1, x2, y1, y2) {
-  sqrt((x2 - x1)^2 + (y2 - y2)^2)
+  # res <- sqrt((x2 - x1)^2 + (y2 - y1)^2)
+  # res <- matrix(c(x1, y1, x2, y2), nrow = 2, byrow = TRUE)
+  m <- matrix(c(x1, y1)) - matrix(c(x2, y2))
+  res <- .norm_vec(m)
+  res
 }
 
 .tti.player <- function(x, rx2, ry2, ...) {
@@ -154,9 +161,13 @@ obj_print_data.player <- function(x) {
 }
 
 .p_intercept.player <- function(x, t, ...) {
-  den <- 1 + (-pi / sqrt(3) / field(x, 'tti_sigma') * (t - field(x, 'tti')))
+  den_term <- (-pi / sqrt(3) / field(x, 'tti_sigma')) * (t - field(x, 'tti'))
+  den <- 1 + exp(den_term)
   res <- 1 / den
   # assertthat::assert_that(res > 0, msg = sprintf('Probability to intercept (`%.2f`) cannot be < 0.', res))
+  # if(res < 0 | res > 1) {
+  #   browser()
+  # }
   res
 }
 

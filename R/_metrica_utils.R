@@ -1,6 +1,6 @@
 
 .get_dims_metrica <- function() {
-  c(105, 68)
+  c(106, 68)
 }
 
 
