@@ -1,3 +1,4 @@
+#%%
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -16,7 +17,7 @@ import Metrica_PitchControl as mpc
 import Metrica_EPV as mepv
 
 # set up initial path to data
-DATADIR = '/PATH/TO/WHERE/YOU/SAVED/THE/SAMPLE/DATA'
+DATADIR = 'data'
 
 game_id = 2  # let's look at sample match 2
 
@@ -38,13 +39,17 @@ tracking_home, tracking_away, events = mio.to_single_playing_direction(
 )
 
 # Calculate player velocities
-tracking_home = mvel.calc_player_velocities(tracking_home, smoothing=True)
-tracking_away = mvel.calc_player_velocities(tracking_away, smoothing=True)
+#tracking_home = mvel.calc_player_velocities(tracking_home, smoothing=True)
+#tracking_away = mvel.calc_player_velocities(tracking_away, smoothing=True)
 # **** NOTE *****
 # if the lines above produce an error (happens for one version of numpy) change them to the lines below:
 # ***************
-#tracking_home = mvel.calc_player_velocities(tracking_home,smoothing=True,filter_='moving_average')
-#tracking_away = mvel.calc_player_velocities(tracking_away,smoothing=True,filter_='moving_average')
+tracking_home = mvel.calc_player_velocities(
+    tracking_home, smoothing=True, filter_='moving_average'
+)
+tracking_away = mvel.calc_player_velocities(
+    tracking_away, smoothing=True, filter_='moving_average'
+)
 """ *** UPDATES TO THE MODEL: OFFSIDES """
 # first get pitch control model parameters
 params = mpc.default_model_params()
@@ -78,6 +83,7 @@ event_number = 822  # away team first goal
 EEPV_added, EPV_diff = mepv.calculate_epv_added(
     event_number, events, tracking_home, tracking_away, GK_numbers, EPV, params
 )
+#%%
 PPCF, xgrid, ygrid = mpc.generate_pitch_control_for_event(
     event_number,
     events,
@@ -92,6 +98,7 @@ PPCF, xgrid, ygrid = mpc.generate_pitch_control_for_event(
     n_grid_cells_x=50,
     offsides=True
 )
+#%%
 fig, ax = mviz.plot_EPV_for_event(
     event_number,
     events,
@@ -103,9 +110,15 @@ fig, ax = mviz.plot_EPV_for_event(
     autoscale=True
 )
 fig.suptitle('Pass EPV added: %1.3f' % EEPV_added, y=0.95)
+
+#%%
 mviz.plot_pitchcontrol_for_event(
     event_number, events, tracking_home, tracking_away, PPCF, annotate=True
 )
+
+#%%
+import pandas as pd
+pd.DataFrame(PPCF).describe()
 
 #%%
 """ **** calculate value-added for all passes **** """

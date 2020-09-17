@@ -79,7 +79,7 @@
 
 add_player_velocities <- function(data, ...) {
   
-  rgx <- .get_metrica_col_rgx()
+  rgx <- .get_col_rgx_metrica()
   player_prefixes <-
     data %>% 
     names() %>% 

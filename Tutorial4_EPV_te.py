@@ -303,6 +303,7 @@ dy = field_dimen[1] / float(ny)
 ix = (x + field_dimen[0] / 2. - 0.0001) / dx
 iy = (y + field_dimen[1] / 2. - 0.0001) / dy
 EPV[int(iy), int(ix)]
+print(ix)
 #%%
 
 EPV_start = mepv.get_EPV_at_location(

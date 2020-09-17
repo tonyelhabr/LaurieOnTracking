@@ -37,7 +37,7 @@ import_epv_grid <- memoise::memoise({
 })
 
 get_epv <- function(x, y, epv_grid = import_epv_grid()) {
-  dims <- .get_dims_metrica()
+  dims <- .get_dims_opta()
   dims
   epv_grid_trans <-
     epv_grid %>% 
@@ -53,8 +53,8 @@ get_epv <- function(x, y, epv_grid = import_epv_grid()) {
   ggsoccer::annotate_pitch(
     fill = pitch_fill, 
     colour = pitch_color,
-    # limits = limits,
-    dimension = ggsoccer::pitch_international
+    limits = limits,
+    dimension = ggsoccer::pitch_opta # ggsoccer::pitch_international
   )
 }
 

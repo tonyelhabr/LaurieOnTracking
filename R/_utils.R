@@ -1,8 +1,8 @@
 
-.get_dims_metrica <- function() {
-  c(106, 68)
+.get_dims_opta <- function() {
+  # c(106, 68)
+  c(100, 100)
 }
-
 
 .get_valid_sides <- function() {
   c('away', 'home')
@@ -11,6 +11,6 @@
   match.arg(x)
 }
 
-.get_metrica_col_rgx <- function() {
+.get_col_rgx_metrica <- function() {
   '(home|away)_([0-9]+)_(x|y)$'
 }

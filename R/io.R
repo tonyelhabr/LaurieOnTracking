@@ -7,12 +7,13 @@
   'output'
 }
 
-.to_metrica_coordinates <- function(data, dims = .get_dims_metrica()) {
+.to_metrica_coordinates <- function(data, dims = .get_dims_opta()) {
   res <-
     data %>%
     mutate(
       across(matches('x$'), ~{.x * dims[1]}),
-      across(matches('y$'), ~{.x * dims[2]})
+      # across(matches('y$'), ~{.x * dims[2]})
+      across(matches('y$'), ~{-1 * (.x * dims[2] - dims[2])})
     )
   res
 }
@@ -32,6 +33,12 @@ import_event_data <- function(game_id, dir = .get_dir_data(), postprocess = FALS
     res %>% 
     .to_metrica_coordinates() %>% 
     .to_single_player_direction() %>% 
+    mutate(across(matches('^(start|end)_[xy]$'), ~if_else(is.nan(.x), NA_real_, .x))) %>% 
+    fill(start_x, start_y, .direction = 'downup') %>% 
+    mutate(
+      across(end_x, ~coalesce(.x, start_x)),
+      across(end_y, ~coalesce(.x, start_y))
+    ) %>% 
     mutate(event_id = row_number()) %>% 
     relocate(event_id)
   res
