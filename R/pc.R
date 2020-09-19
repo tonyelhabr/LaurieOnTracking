@@ -1,5 +1,5 @@
 
-get_default_model_params <- function(time_to_control_veto = 3) {
+get_default_pc_params <- function(time_to_control_veto = 3) {
   params <-
     list(
       max_player_accel = 7,

@@ -6,7 +6,7 @@ events <- import_event_data(game_id = game_id, postprocess = TRUE)
 tracking_home <- import_tracking_data_timed(game_id = game_id, side = 'home', overwrite = T)
 tracking_away <- import_tracking_data_timed(game_id = game_id, side = 'away', overwrite = T)
 tracking <- bind_rows(tracking_home, tracking_away)
-params <- get_default_model_params()
+params <- get_default_pc_params()
 params
 tracking %>% skimr::skim()
 

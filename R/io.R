@@ -7,7 +7,7 @@
   'output'
 }
 
-.to_metrica_coordinates <- function(data, dims = .get_dims_opta()) {
+.to_opta_coordinates <- function(data, dims = .get_dims_opta()) {
   res <-
     data %>%
     mutate(
@@ -31,7 +31,7 @@ import_event_data <- function(game_id, dir = .get_dir_data(), postprocess = FALS
   }
   res <- 
     res %>% 
-    .to_metrica_coordinates() %>% 
+    .to_opta_coordinates() %>% 
     .to_single_player_direction() %>% 
     mutate(across(matches('^(start|end)_[xy]$'), ~if_else(is.nan(.x), NA_real_, .x))) %>% 
     fill(start_x, start_y, .direction = 'downup') %>% 
@@ -113,7 +113,6 @@ import_event_data <- function(game_id, dir = .get_dir_data(), postprocess = FALS
     res
   }
 
-
 import_tracking_data <-
   function(game_id,
            side = .get_valid_sides(),
@@ -137,17 +136,7 @@ import_tracking_data <-
     
     suppressWarnings(data <- read_csv(path, skip = 2))
     res_init <- data %>% .fix_tracking_names(side = side)
-    # res_init %>% 
-    #   filter(frame == .frame) %>%
-    #   select(matches('_x$')) %>% 
-    #   # glimpse()
-    #   mutate(
-    #     across(matches('_x$'), ~{(.x - 0.5) * 106})
-    #   ) %>% 
-    #   # mutate(
-    #   #   across(matches('_x$'), ~{(.x + (106 * 0.5)) / (106 * 1)})
-    #   # ) %>% 
-    #   glimpse()
+
     if(!postprocess) {
       return(res_init)
     }
@@ -166,7 +155,7 @@ import_tracking_data <-
       ) %>% 
       mutate(team = !!side) %>% 
       arrange(player, frame) %>% 
-      .to_metrica_coordinates() %>% 
+      .to_opta_coordinates() %>% 
       .add_velocity_cols()
     feather::write_feather(res, path = path_export)
     res
@@ -174,6 +163,9 @@ import_tracking_data <-
 
 import_tracking_data_timed <- .time_it(import_tracking_data)
 
+# TODO: Need to check how `pull_gk_numbers()` and  `pull_home_attack_direction()` are "needed".
+# `pull_home_attack_direction()` is used in tutorial 4, but not by any function.
+# `pull_gk_numbers()` is also used in tutorial 4, and it is used in the `player()` class function and `pull_home_attack_direction()` functions. It is certainly useful because it is needed for the player class.
 pull_gk_numbers <- function(tracking) {
   res <-
     tracking %>% 

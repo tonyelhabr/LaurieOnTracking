@@ -23,13 +23,22 @@ new_player <-
     vctrs::vec_assert(player_id, integer())
     vctrs::vec_assert(side, character())
     .validate_side(side)
+    vctrs::vec_assert(is_attack, logical())
+    vctrs::vec_assert(tti, double())
+    vctrs::vec_assert(in_frame, logical())
     vctrs::vec_assert(start_frame, integer())
-    # TODO: More assertion.
+    vctrs::vec_assert(x, double())
+    vctrs::vec_assert(y, double())
+    vctrs::vec_assert(x_v, double())
+    vctrs::vec_assert(y_v, double())
+    vctrs::vec_assert(vmax, double())
+    vctrs::vec_assert(reaction_time, double())
+    vctrs::vec_assert(tti_sigma, double())
+    vctrs::vec_assert(lambda_att, double())
+    vctrs::vec_assert(lambda_def, double())
     
-    # browser()
     res <-
       vctrs::new_rcrd(
-        # structure(
         list(
           'player_id' = player_id,
           'is_gk' = is_gk,
@@ -57,11 +66,10 @@ new_player <-
 
 player <- 
   function(player_id = 1L,
-           # side = 'home',
            start_frame = 1L,
            events,
            tracking,
-           params = get_default_model_params()) {
+           params = get_default_pc_params()) {
     
     player_id <- as.integer(player_id)
     start_frame <- as.integer(start_frame)
@@ -87,7 +95,6 @@ player <-
     # browser()
     assertthat::assert_that(nrow(frame) == 1L)
 
-    
     side <- frame[['side']]
     # .validate_side(side)
     
@@ -110,10 +117,8 @@ player <-
         start_frame = start_frame,
         x = frame[['x']],
         y = frame[['y']],
-        # pos = list('x' = frame[['x']], 'y' = frame[['y']]),
         x_v = frame[['x_v']],
         y_v = frame[['y_v']],
-        # v = list('x' = frame[['x_v']], 'y' = frame[['y_v']]),
         vmax = params[['max_player_speed']],
         reaction_time = params[['reaction_time']],
         tti_sigma = params[['tti_sigma']],
@@ -124,44 +129,33 @@ player <-
 }
 
 format.player <- function(x, ...) {
-  info <- sprintf('`player_id = %s`%s on %s team (%s) is located at `(%.2f, %.2f)` with velocity = `<%.1f, %.1f>` and has `tti = %.2f` and `ppcf = %.3f`', field(x, 'player_id'), ifelse(field(x, 'is_gk'), ' (goalkeeper)', ''), field(x, 'side'), ifelse(field(x, 'is_attack'), 'attacking', 'defending'), field(x, 'x'), field(x, 'y'), field(x, 'x_v'), field(x, 'y_v'), field(x, 'tti'), field(x, 'ppcf'))
-  # if(field(x, 'is_gk')) {
-  #   info <- sprintf('%s. Player is the goalkeeper', info)
-  # }
-  # info <- sprintf('<player> %s located at (%s) with velocity <%s>', field(x, 'player_id'), field(x, 'pos'), field(x, 'v'))
+  info <- sprintf('`player_id = %s`%s on %s team (%s) is located at `(%.2f, %.2f)` with velocity = `<%.1f, %.1f>` and has `tti = %.2f` and `ppcf = %.3f`', vctrs::field(x, 'player_id'), ifelse(vctrs::field(x, 'is_gk'), ' (goalkeeper)', ''), vctrs::field(x, 'side'), ifelse(vctrs::field(x, 'is_attack'), 'attacking', 'defending'), vctrs::field(x, 'x'), vctrs::field(x, 'y'), vctrs::field(x, 'x_v'), vctrs::field(x, 'y_v'), vctrs::field(x, 'tti'), vctrs::field(x, 'ppcf'))
   paste(info, sep = '\n')
-  # print(format(info))
-  # cat(info, sep = '\n')
-  # invisible(x)
 }
 
 obj_print_data.player <- function(x) {
   cat(format(x), sep = '\n')
 }
 
-.norm_vec <- function(x) sqrt(sum(x^2))
-
 # norm(matrix(c(1, 2, 4, 2.5), nrow = 2, byrow = TRUE))
 .norm <- function(x1, x2, y1, y2) {
   # res <- sqrt((x2 - x1)^2 + (y2 - y1)^2)
   # res <- matrix(c(x1, y1, x2, y2), nrow = 2, byrow = TRUE)
   m <- matrix(c(x1, y1)) - matrix(c(x2, y2))
-  res <- .norm_vec(m)
+  res <- sqrt(sum(m^2))
   res
 }
 
 .tti.player <- function(x, rx2, ry2, ...) {
-  ri <- field(x, 'reaction_time')
-  rx1 <- field(x, 'x') + field(x, 'x_v') * ri
-  ry1 <- field(x, 'y') + field(x, 'y_v') * ri
-  # rxd <- rx2 - rx1
-  # ryd <- ry2 - ry1
-  res <- ri + .norm(rx1, rx2, ry1, ry2) / field(x, 'vmax')
+  ri <- vctrs::field(x, 'reaction_time')
+  rx1 <- vctrs::field(x, 'x') + vctrs::field(x, 'x_v') * ri
+  ry1 <- vctrs::field(x, 'y') + vctrs::field(x, 'y_v') * ri
+  res <- ri + .norm(rx1, rx2, ry1, ry2) / vctrs::field(x, 'vmax')
   res
 }
 
 .p_intercept.player <- function(x, t, ...) {
-  den_term <- (-pi / sqrt(3) / field(x, 'tti_sigma')) * (t - field(x, 'tti'))
+  den_term <- (-pi / sqrt(3) / vctrs::field(x, 'tti_sigma')) * (t - vctrs::field(x, 'tti'))
   den <- 1 + exp(den_term)
   res <- 1 / den
   # assertthat::assert_that(res > 0, msg = sprintf('Probability to intercept (`%.2f`) cannot be < 0.', res))
@@ -172,45 +166,41 @@ obj_print_data.player <- function(x) {
 }
 
 `.update_tti<-.player` <- function(x, value) {
-  field(x, 'tti') <- value
+  vctrs::field(x, 'tti') <- value
   x
 }
 
 # TODO!
 # `.update_in_frame<-.player` <- function(x, value) {
-#   field(x, 'in_frame') <- value
+#   vctrs::field(x, 'in_frame') <- value
 #   x
 # }
 
 `.update_ppcf<-.player` <- function(x, value) {
-  field(x, 'ppcf') <- value
+  vctrs::field(x, 'ppcf') <- value
   x
 }
 
-.tti.default <- function(x, ...) {
+.msg_cls_err <- function(x, f) {
   cls <- class(x)[1]
-  err <- sprintf('`.tti()` doesn\'t know how to handle class `%s`!', cls) 
-  stop(err, call. = FALSE)
+  sprintf('`%s()` doesn\'t know how to handle class `%s`!', f, cls) 
+}
+
+.tti.default <- function(x, ...) {
+  stop(.msg_cls_err(x, '.tti') call. = FALSE)
 }
 
 .p_intercept.default <- function(x, ...) {
-  cls <- class(x)[1]
-  err <- sprintf('`.p_intercept()` doesn\'t know how to handle class `%s`!', cls) 
-  stop(err, call. = FALSE)
+  stop(.msg_cls_err(x, '.p_intercept') call. = FALSE)
 }
 
 `.update_tti<-default` <- function(x, ...) {
-  cls <- class(x)[1]
-  err <- sprintf('`.update_tti()` doesn\'t know how to handle class `%s`!', cls) 
-  stop(err, call. = FALSE)
+  stop(.msg_cls_err(x, '.update_tti') call. = FALSE)
 }
 
 `.update_ppcf<-default` <- function(x, ...) {
-  cls <- class(x)[1]
-  err <- sprintf('`.update_ppcf()` doesn\'t know how to handle class `%s`!', cls) 
-  stop(err, call. = FALSE)
+  stop(.msg_cls_err(x, '.update_ppcf') call. = FALSE)
 }
-
 
 .tti <- function(x, ...) {
   UseMethod('.tti')

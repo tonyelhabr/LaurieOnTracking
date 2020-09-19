@@ -12,17 +12,24 @@
   res
 }
 
-.rescale_tidy_epv_grid <- function(tidy_epv_grid) {
+.rescale_tidy_epv_grid <- function(tidy_epv_grid, dims = .get_dims_opta()) {
   res <-
     tidy_epv_grid %>% 
+    # I believe I double checked how this flips and it should be correct. The `X` prefixed columns are `x`. 
     mutate(
-      across(col, ~str_remove(.x, '^X') %>% as.integer() %>% .rescale(c(1L, 50L), c(0L, 106L))),
-      across(row, ~.rescale(.x, c(1L, 32L), c(0L, 68L)))
+      across(col, ~str_remove(.x, '^X') %>% as.integer() %>% .rescale(c(1L, 50L), c(0L, dims[1]))),
+      across(row, ~.rescale(.x, c(1L, 32L), c(0L, dims[2])))
     ) %>% 
-    rename(x = row, y = col)
+    rename(x = col, y = row)
   res
 }
 
+.add_grid_id_cols <- function(grid) {
+  res <-
+    grid %>% 
+    mutate(idx = dense_rank(x), idy = dense_rank(y))
+  res
+}
 
 import_epv_grid <- memoise::memoise({
   function(path = file.path('data', 'EPV_grid.csv')) {
@@ -31,30 +38,25 @@ import_epv_grid <- memoise::memoise({
     res <- 
       read_csv(path, col_names = FALSE) %>% 
       .tidy_epv_grid() %>% 
-      .rescale_tidy_epv_grid()
+      .rescale_tidy_epv_grid() %>% 
+      .add_grid_id_cols()
     res
   }
 })
 
-get_epv <- function(x, y, epv_grid = import_epv_grid()) {
-  dims <- .get_dims_opta()
-  dims
-  epv_grid_trans <-
-    epv_grid %>% 
-    mutate(
-      across(x, ~(.x - dims[2]/2)),
-      across(y, ~(.x - dims[1]/2))
-    )
-  epv_grid_trans
-  epv_grid_trans %>% skimr::skim()
-}
+# Reference: https://raw.githubusercontent.com/anenglishgoat/InteractivePitchControl/master/xT.csv
+import_xt_grid <- memoise::memoise({
+  function(path = file.path('data', 'xT.csv')) {
+    import_epv_grid(path = path)
+  }
+})
 
 .get_pitch <- function(pitch_fill = 'white', pitch_color = 'black', limits = FALSE) {
   ggsoccer::annotate_pitch(
     fill = pitch_fill, 
     colour = pitch_color,
     limits = limits,
-    dimension = ggsoccer::pitch_opta # ggsoccer::pitch_international
+    dimension = ggsoccer::pitch_opta
   )
 }
 
@@ -74,8 +76,7 @@ get_epv <- function(x, y, epv_grid = import_epv_grid()) {
   res
 }
 
-
-plot_epv <- function(epv_grid = import_epv_grid(), attack_direction = 1, ...) {
+plot_epv_grid <- function(epv_grid = import_epv_grid(), attack_direction = 1, ...) {
   if(attack_direction == -1) {
     epv_grid <- epv_grid %>% mutate(across(value, ~.x * -1))
   }
@@ -87,3 +88,55 @@ plot_epv <- function(epv_grid = import_epv_grid(), attack_direction = 1, ...) {
     geom_tile(aes(fill = value))
   viz
 }
+
+
+.filter_epv_grid <- function(epv_grid, x, y) {
+  res <-
+    epv_grid %>% 
+    mutate(
+      # dx = sqrt(x^2 + start_x^2),
+      # dy = sqrt(y^2 + start_y^2)
+      dx = abs(x - !!x),
+      dy = abs(y - !!y)
+    ) %>% 
+    mutate(dz = sqrt(dx^2 + dy^2)) %>% 
+    filter(dz == min(dz)) %>% 
+    select(-dx, -dy, -dz)
+  res
+}
+
+.compute_epv_added <- function(epv_grid, start_x, start_y, end_x, end_y) {
+  epv_start <- epv_grid %>% .filter_epv_grid(start_x, start_y)
+  epv_end <- epv_grid %>% .filter_epv_grid(end_x, end_y)
+  value_start <- epv_start[['value']]
+  value_end <- epv_end[['value']]
+  list(
+    epv_start = value_start,
+    epv_end = value_end,
+    epv_change = value_end - value_start
+  )
+}
+
+do_compute_epv_added <- function(events, frame, epv_grid = import_epv_grid()) {
+  event <- events %>% filter(start_frame == !!frame)
+  assertthat::assert_that(nrow(event) == 1L)
+  start_x <- events1[['start_x']]
+  start_y <- events1[['start_y']]
+  end_x <- events1[['end_x']]
+  end_y <- events1[['end_y']]
+  res <-
+    .compute_epv_added(
+      epv_grid = epv_grid,
+      start_x = start_x,
+      start_y = start_y,
+      end_x = end_x,
+      end_y = end_y
+    )
+  res
+}
+
+do_compute_xt_added <- function(..., epv_grid = import_xt_grid()) {
+  do_compute_epv_added(..., epv_grid = epv_grid)
+}
+
+

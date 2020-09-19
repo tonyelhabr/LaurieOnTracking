@@ -8,6 +8,25 @@ tracking_away <- import_tracking_data_timed(game_id = game_id, side = 'away', ov
 tracking <- bind_rows(tracking_home, tracking_away)
 tracking
 
+# for pc speed study ----
+event_id <- 823L
+events1 <- 
+  events %>% 
+  filter(event_id == !!event_id) %>% 
+  mutate(frame = start_frame)
+events1
+
+tracking1 <-
+  tracking %>% 
+  inner_join(events1 %>% select(frame))
+tracking1
+
+path_events1 <- fs::path('output', 'events1.csv')
+# write_csv(events1, path = path_events1, na = '')
+path_tracking1 <- fs::path('output', 'tracking1.csv')
+# write_csv(tracking1, path = path_tracking1, na = '')
+
+# plot event sequence ----
 start_event_id <- 817L
 n_event <- 7L
 end_event_id <- start_event_id + n_event
@@ -32,7 +51,7 @@ viz <-
   aes(x = x, y = y) +
   .pitch_gg() +
   geom_point(
-    data = tracking_filt %>% filter(!is.na(x)),
+    data = tracking_filt %>% filter(!is.na(x)) %>% filter(player == 11L),
     aes(fill = side),
     size = 3,
     color = 'black',
@@ -58,6 +77,7 @@ viz <-
   )
 viz  
 
+# plot pc ----
 event_id <- 823L
 pc <-
   do_calculate_pc_for_event(
@@ -70,69 +90,21 @@ pc
 pc_slim <- pc %>% select(-pc, -res)
 pc_slim
 
-pc_x <- pc_slim %>% pull(x) # distinct(x) %>% pull(x)
-pc_y <- pc_slim %>% pull(y) # distinct(y) %>% pull(y)
-pc_x_rng <- range(pc_x)
-pc_y_rng <- range(pc_y)
-bw_x <- MASS::bandwidth.nrd(pc_x)
-bw_y <- MASS::bandwidth.nrd(pc_y)
-bw <- c(bw_x, bw_y)
-dxy <- MASS::kde2d(pc_x, pc_y, n = 100L, lims = c(pc_x_rng, pc_y_rng))
-dxy
-
-pc_z <-
-  crossing(x = dxy$x, y = dxy$y) %>% 
-  mutate(z = as.vector(dxy$z))
+pal <- colorRampPalette(c('red', 'white', 'blue'))(10)
+pal %>% scales::show_col()
 
 pc_slim %>% 
-  ggplot(aes(x = x, y = y, z = ppcf_att)) +
-  stat_contour(geom = 'polygon', aes(fill = ..level.., color = ..level..)) +
-  # geom_tile(aes(fill = ppcf_att)) +
-  stat_contour(bins = 15)
-
-pc_slim %>% 
-  ggplot(aes(x = x, y = y, z = ppcf_att)) +
-  geom_contour_filled(aes(fill = ..level.., color = ..level..)) +
-  # scale_fill_gradient2(
-  #   low = 'red',
-  #   high = 'blue',
-  #   midpoint = 0.5
-  # )
-  scale_fill_brewer(palette = 'RdBu') +
-  scale_color_brewer(palette = 'RdBu')
-  # scale_color_gradient2(
-  #   low = 'red', 
-  #   high = 'blue', 
-  #   midpoint = 0.5
-  # ) 
-
-
-pc_z <-
-  dxy$z %>% 
-  as_tibble() %>% 
-  mutate(x = dxy$x) %>% 
-  pivot_longer(-x, names_to = 'y', values_to = 'z') %>% 
-  mutate(
-    y = y %>% str_remove('^V') %>% as.double()
-  )
-pc_z
-pc_z %>% skimr::skim() 
-
-pc_z %>% 
   ggplot() +
-  aes(x = x, y = y) +
-  # .pitch_gg() +
-  geom_raster(aes(x = x, y = y, fill = z)) +
-  stat_contour(aes(color = ..level.., z = z)) +
-  # scale_fill_gradient2(low="blue",mid="white", high="red", midpoint=0.0008) +
-  # scale_color_gradient2(low="blue", mid="white", high="red", midpoint=0.0008) +
-  # drop the legends
-  guides(color=FALSE, fill = FALSE)
+  aes(x = x, y = y, z = ppcf_att) +
+  .pitch_gg() +
+  geom_contour_filled(aes(fill = ..level.., color = ..level..), alpha = 0.7) +
+  scale_fill_manual(values = pal) +
+  scale_color_manual(values = pal)
 
 
 events1 <- 
   events %>% 
-  filter(event_id == !!start_event_id) %>% 
+  filter(event_id == !!event_id) %>% 
   mutate(frame = start_frame)
 events1
 
@@ -183,3 +155,29 @@ viz <-
   )
 viz
 
+# epv added ----
+epv_grid <- import_epv_grid()
+epv_grid
+epv_grid %>% plot_epv()
+xt_grid <- import_xt_grid()
+xt_grid %>% plot_epv()
+epv_grid %>% .filter_epv_grid(start_x, start_y)
+epv_grid %>% .filter_epv_grid(end_x, end_y)
+epv_grid %>% .filter_epv_grid(end_x + 2, end_y + 2)
+epv_grid %>% .filter_epv_grid(end_x - 1, end_y  - 1)
+
+epv_grid %>% 
+  mutate(rx = dense_rank(x), ry = dense_rank(y)) %>% 
+  mutate(
+    # dx = sqrt(x^2 + start_x^2),
+    # dy = sqrt(y^2 + start_y^2)
+    dx = abs(x - !!start_x),
+    dy = abs(y - !!start_y)
+  ) %>% 
+  mutate(dz = sqrt(dx^2 + dy^2)) %>% 
+  filter(dz == min(dz)) %>% 
+  select(-dx, -dy, -dz)
+
+epv_grid %>% 
+  mutate(rx = dense_rank(x), ry = dense_rank(y)) %>% 
+  filter(rx == 11L, ry == 44L)

@@ -27,14 +27,14 @@ calculate_pc_at_target <-
            ball_y,
            target_x = ball_x,
            target_y = ball_y,
-           params = get_default_model_params()) {
+           params = get_default_pc_params()) {
     
     if(FALSE) {
       ball_x <- tracking[1, ][['ball_x']]
       ball_y <- tracking[1, ][['ball_y']]
       target_x <- ball_x
       target_y <- ball_y
-      params = get_default_model_params()
+      params = get_default_pc_params()
       players <-
         tracking %>%
         pull(player) %>%
@@ -225,11 +225,11 @@ calculate_pc_at_target <-
   }
 
 do_calculate_pc_for_event <-
-  function(tracking, events, event_id, params = get_default_model_params(), epv_grid = import_epv_grid(), n_cell_x = 50L, n_cell_y = 50L) {
+  function(tracking, events, event_id, params = get_default_pc_params(), epv_grid = import_epv_grid(), n_cell_x = 50L, n_cell_y = 50L) {
     
     if(FALSE) {
 
-      params = get_default_model_params()
+      params = get_default_pc_params()
       epv_grid = import_epv_grid()
       event_id = 823L
       n_cell_x = 50L
