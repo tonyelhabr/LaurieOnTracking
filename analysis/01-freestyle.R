@@ -21,6 +21,12 @@ tracking1 <-
   inner_join(events1 %>% select(frame))
 tracking1
 
+# 
+tracking %>% 
+  inner_join(events1 %>% select(frame = end_frame)) %>% 
+  distinct(ball_x, ball_y) %>% 
+  deframe()
+
 path_events1 <- fs::path('output', 'events1.csv')
 # write_csv(events1, path = path_events1, na = '')
 path_tracking1 <- fs::path('output', 'tracking1.csv')
@@ -84,23 +90,22 @@ pc <-
     tracking = tracking,
     events = events,
     event_id = event_id
-  )
+  ) %>% 
+  select(-pc, -res)
 pc
 
 pc_slim <- pc %>% select(-pc, -res)
 pc_slim
 
 pal <- colorRampPalette(c('red', 'white', 'blue'))(10)
-pal %>% scales::show_col()
 
 pc_slim %>% 
   ggplot() +
-  aes(x = x, y = y, z = ppcf_att) +
+  aes(x = x - 1, y = y - 1, z = ppcf_att) +
   .pitch_gg() +
   geom_contour_filled(aes(fill = ..level.., color = ..level..), alpha = 0.7) +
   scale_fill_manual(values = pal) +
   scale_color_manual(values = pal)
-
 
 events1 <- 
   events %>% 
@@ -116,18 +121,11 @@ tracking1 <-
 tracking1
 
 viz <-
-  pc %>% 
-  select(-pc, -res) %>% 
+  pc_slim %>% 
   ggplot() +
   aes(x, y) +
   .pitch_gg() +
-  # geom_point(aes(size = abs(ppcf_diff), color = ppcf_diff))
   geom_tile(aes(fill = ppcf_att), alpha = 0.7) +
-  # .pitch_gg(
-  #   pitch = .get_pitch(pitch_fill = NA, limits = TRUE)
-  #   # pitch = .get_pitch()
-  # ) +
-  # scale_fill_viridis_c(option = 'B') +
   scale_fill_gradient2(
     low = 'red', 
     high = 'blue', 

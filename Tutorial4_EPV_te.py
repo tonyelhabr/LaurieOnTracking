@@ -303,12 +303,15 @@ dy = field_dimen[1] / float(ny)
 ix = (x + field_dimen[0] / 2. - 0.0001) / dx
 iy = (y + field_dimen[1] / 2. - 0.0001) / dy
 EPV[int(iy), int(ix)]
-print(ix)
+#%%
+int(ix), int(iy)
 #%%
 
 EPV_start = mepv.get_EPV_at_location(
     pass_start_pos, EPV, attack_direction=attack_direction
 )
+
+#%%
 EPV_target = mepv.get_EPV_at_location(
     pass_target_pos, EPV, attack_direction=attack_direction
 )

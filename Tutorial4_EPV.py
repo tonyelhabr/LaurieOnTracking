@@ -110,15 +110,15 @@ fig, ax = mviz.plot_EPV_for_event(
     autoscale=True
 )
 fig.suptitle('Pass EPV added: %1.3f' % EEPV_added, y=0.95)
-
 #%%
-mviz.plot_pitchcontrol_for_event(
+from matplotlib import pyplot as plt
+fig.savefig(f'epv_{event_number}.png')
+#%%
+fig, ax = mviz.plot_pitchcontrol_for_event(
     event_number, events, tracking_home, tracking_away, PPCF, annotate=True
 )
-
 #%%
-import pandas as pd
-pd.DataFrame(PPCF).describe()
+fig.savefig(f'pc_{event_number}.png')
 
 #%%
 """ **** calculate value-added for all passes **** """
@@ -190,9 +190,16 @@ fig, ax = mviz.plot_EPV_for_event(
     annotate=True
 )
 fig.suptitle('Pass EPV added: %1.3f' % EEPV_added, y=0.95)
-mviz.plot_pitchcontrol_for_event(
+#%%
+fig.savefig(f'epv_{event_number}.png')
+
+#%%
+fig, ax = mviz.plot_pitchcontrol_for_event(
     event_number, events, tracking_home, tracking_away, PPCF, annotate=True
 )
+
+#%%
+fig.savefig(f'pc_{event_number}.png')
 #%%
 event_number = 1663  # away team assisst to blocked shot
 EEPV_added, EPV_diff = mepv.calculate_epv_added(
@@ -222,9 +229,15 @@ fig, ax = mviz.plot_EPV_for_event(
     annotate=True
 )
 fig.suptitle('Pass EPV added: %1.3f' % EEPV_added, y=0.95)
-mviz.plot_pitchcontrol_for_event(
+#%%
+fig.savefig(f'epv_{event_number}.png')
+#%%
+fig, ax = mviz.plot_pitchcontrol_for_event(
     event_number, events, tracking_home, tracking_away, PPCF, annotate=True
 )
+#%%
+fig.savefig(f'pc_{event_number}.png')
+
 #%%
 # retaining possession
 event_number = 195
@@ -255,9 +268,16 @@ fig, ax = mviz.plot_EPV_for_event(
     annotate=True
 )
 fig.suptitle('Pass EPV added: %1.3f' % EEPV_added, y=0.95)
-mviz.plot_pitchcontrol_for_event(
+#%%
+fig.savefig(f'epv_{event_number}.png')
+
+#%%
+fig, ax = mviz.plot_pitchcontrol_for_event(
     event_number, events, tracking_home, tracking_away, PPCF, annotate=True
 )
+
+#%%
+fig.savefig(f'pc_{event_number}.png')
 
 #%%
 '''

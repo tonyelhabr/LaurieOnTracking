@@ -11,6 +11,7 @@ get_default_pc_params <- function(time_to_control_veto = 3) {
       average_ball_speed = 15,
       int_dt = 0.04,
       max_int_time = 10,
+      iter_min = 5,
       model_converge_tol = 0.01
     )
   params$lambda_def = 4.3 * params[['kappa_def']]

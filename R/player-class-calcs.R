@@ -1,4 +1,5 @@
 
+library(vctrs)
 f_assert_dppcf_dt <- function(dppcf_dt, i, is_attack = TRUE) {
   cnd <- dppcf_dt >= 0
   if(cnd) {
@@ -256,22 +257,23 @@ do_calculate_pc_for_event <-
     
     dims <- .get_dims_opta()
     # n_cell_y <- n_cell_x * dims[2] / dims[1]
-    # n_cell_y
     dx <- dims[1] / n_cell_x
     dy <- dims[2] / n_cell_y
     
+    # grid_pc <-
+    #   crossing(
+    #     x = seq(0 + dx / 2, dims[1], length.out = n_cell_x),
+    #     y = seq(0 + dy / 2, dims[2], length.out = n_cell_y)
+    # )
+    
     grid_pc <-
       crossing(
-        x = seq(0 + dx / 2, dims[1], length.out = n_cell_x),
-        y = seq(0 + dy / 2, dims[2], length.out = n_cell_y)
-    )
+        x = seq(0, dims[1], length.out = n_cell_x),
+        y = seq(0, dims[2], length.out = n_cell_y)
+      )
     
     ball_x <- tracking1[1, ][['ball_x']]
     ball_y <- tracking1[1, ][['ball_y']]
-    # target_x <- events1[1, ][['start_x']]
-    # target_y <- events1[1, ][['start_y']]
-    # target_x <- ball_x
-    # target_y <- ball_y
     f <- quietly(calculate_pc_at_target)
     # f <- safely(calculate_pc_at_target, otherwise = list(), quiet = FALSE)
     # ff <- .time_it(f)
@@ -293,15 +295,15 @@ do_calculate_pc_for_event <-
             )
         ) %>% 
         mutate(
-          res = map(pc, ~pluck(.x, 'result'))
+          pc = map(pc, ~pluck(.x, 'pcult'))
         ) %>% 
         mutate(
-          ppcf_att = map_dbl(res, ~pluck(.x, 'ppcf_att')),
-          ppcf_def = map_dbl(res, ~pluck(.x, 'ppcf_def'))
+          ppcf_att = map_dbl(pc, ~pluck(.x, 'ppcf_att')),
+          ppcf_def = map_dbl(pc, ~pluck(.x, 'ppcf_def'))
         ) %>% 
-        # select(-pc, -res) %>% 
+        # select(-pc) %>% 
         arrange(x, y)
-      res
+      pc
     }
     
     do_timed <- .time_it(do, .name = 'calculate pc for event')
