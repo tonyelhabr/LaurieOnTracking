@@ -21,11 +21,10 @@ tracking1 <-
   inner_join(events1 %>% select(frame))
 tracking1
 
-# 
-tracking %>% 
-  inner_join(events1 %>% select(frame = end_frame)) %>% 
-  distinct(ball_x, ball_y) %>% 
-  deframe()
+# tracking %>% 
+#   inner_join(events1 %>% select(frame = end_frame)) %>% 
+#   distinct(ball_x, ball_y) %>% 
+#   deframe()
 
 path_events1 <- fs::path('output', 'events1.csv')
 # write_csv(events1, path = path_events1, na = '')
