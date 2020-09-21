@@ -602,7 +602,7 @@ do_compute_xt_added <- function(..., epv_grid = import_xt_grid()) {
   do_compute_epv_added(..., epv_grid = epv_grid)
 }
 
-do_compute_epv_added <- function(tracking, events, event_id, epv_grid = import_epv_grid(), ...) {
+do_compute_epv_added <- function(tracking, events, event_id, epv_grid = import_epv_grid(), params = .get_default_pc_params(), ...) {
 
   events_filt <- events %>% filter(event_id == !!event_id)
   start_frame <- events_filt[['start_frame']]
@@ -641,7 +641,7 @@ do_compute_epv_added <- function(tracking, events, event_id, epv_grid = import_e
   
   pc_end <-
     calculate_pc_at_target(
-      players = players_end,
+      players = players_start,
       ball_x = ball_x,
       ball_y = ball_y,
       target_x = ball_x,
