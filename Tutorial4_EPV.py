@@ -112,13 +112,13 @@ fig, ax = mviz.plot_EPV_for_event(
 fig.suptitle('Pass EPV added: %1.3f' % EEPV_added, y=0.95)
 #%%
 from matplotlib import pyplot as plt
-fig.savefig(f'epv_{event_number}.png')
+fig.savefig(f'output/figs/epv_{event_number}_python.png')
 #%%
 fig, ax = mviz.plot_pitchcontrol_for_event(
     event_number, events, tracking_home, tracking_away, PPCF, annotate=True
 )
 #%%
-fig.savefig(f'pc_{event_number}.png')
+fig.savefig(f'output/figs/pc_{event_number}_python.png')
 
 #%%
 """ **** calculate value-added for all passes **** """
@@ -191,7 +191,7 @@ fig, ax = mviz.plot_EPV_for_event(
 )
 fig.suptitle('Pass EPV added: %1.3f' % EEPV_added, y=0.95)
 #%%
-fig.savefig(f'epv_{event_number}.png')
+fig.savefig(f'output/figs/epv_{event_number}_python.png')
 
 #%%
 fig, ax = mviz.plot_pitchcontrol_for_event(
@@ -199,7 +199,7 @@ fig, ax = mviz.plot_pitchcontrol_for_event(
 )
 
 #%%
-fig.savefig(f'pc_{event_number}.png')
+fig.savefig(f'output/figs/pc_{event_number}_python.png')
 #%%
 event_number = 1663  # away team assisst to blocked shot
 EEPV_added, EPV_diff = mepv.calculate_epv_added(
@@ -230,13 +230,13 @@ fig, ax = mviz.plot_EPV_for_event(
 )
 fig.suptitle('Pass EPV added: %1.3f' % EEPV_added, y=0.95)
 #%%
-fig.savefig(f'epv_{event_number}.png')
+fig.savefig(f'output/figs/epv_{event_number}_python.png')
 #%%
 fig, ax = mviz.plot_pitchcontrol_for_event(
     event_number, events, tracking_home, tracking_away, PPCF, annotate=True
 )
 #%%
-fig.savefig(f'pc_{event_number}.png')
+fig.savefig(f'output/figs/pc_{event_number}_python.png')
 
 #%%
 # retaining possession
@@ -269,7 +269,7 @@ fig, ax = mviz.plot_EPV_for_event(
 )
 fig.suptitle('Pass EPV added: %1.3f' % EEPV_added, y=0.95)
 #%%
-fig.savefig(f'epv_{event_number}.png')
+fig.savefig(f'output/figs/epv_{event_number}_python.png')
 
 #%%
 fig, ax = mviz.plot_pitchcontrol_for_event(
@@ -277,7 +277,7 @@ fig, ax = mviz.plot_pitchcontrol_for_event(
 )
 
 #%%
-fig.savefig(f'pc_{event_number}.png')
+fig.savefig(f'output/figs/pc_{event_number}_python.png')
 
 #%%
 '''

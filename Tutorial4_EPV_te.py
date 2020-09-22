@@ -69,6 +69,9 @@ GK_numbers = [
     mio.find_goalkeeper(tracking_away)
 ]
 #%%
+GK_numbers
+
+#%%
 """ *** GET EPV SURFACE **** """
 home_attack_direction = mio.find_playing_direction(
     tracking_home, 'Home'
@@ -83,8 +86,28 @@ mviz.plot_EPV(
     EPV, field_dimen=(106.0, 68), attack_direction=home_attack_direction
 )
 #%%
+field_dimen = (106.0, 68)
+if home_attack_direction == -1:
+    # flip direction of grid if team is attacking right->left
+    EPV = np.fliplr(EPV)
+ny, nx = EPV.shape
+# plot a pitch
+fig, ax = mviz.plot_pitch(field_color='white', field_dimen=field_dimen)
+# overlap the EPV surface
+ax.imshow(
+    EPV,
+    extent=(
+        -field_dimen[0] / 2., field_dimen[0] / 2., -field_dimen[1] / 2.,
+        field_dimen[1] / 2.
+    ),
+    vmin=0.0,
+    vmax=0.6,
+    cmap='Blues',
+    alpha=0.6
+)
+#%%
 # plot event leading up to first away team goal
-mviz.plot_events(
+fig, ax = mviz.plot_events(
     events.loc[820:823],
     color='k',
     indicators=['Marker', 'Arrow'],
@@ -97,7 +120,7 @@ event_id = 822  # away team first goal
 
 import numpy as np
 import pandas as pd
-from pandas_profiling import ProfileReport
+# from pandas_profiling import ProfileReport
 #%%
 
 pass_frame = events.loc[event_id]['Start Frame']
@@ -108,7 +131,7 @@ ball_start_pos = np.array(
 # print(pass_frame)
 frame_home = pd.DataFrame(tracking_home.loc[[pass_frame], ])
 frame_away = pd.DataFrame(tracking_away.loc[[pass_frame], ])
-pd.concat([frame_home, frame_away], axis=1).T.to_csv('temp2.csv')
+# pd.concat([frame_home, frame_away], axis=1).T.to_csv('temp2.csv')
 
 #%%
 # tracking_home.describe().T.to_csv('tracking_home_describe.csv')

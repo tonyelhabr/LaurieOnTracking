@@ -10,26 +10,26 @@ tracking
 
 # for pc speed study ----
 event_id <- 823L
-events1 <- 
+events_filt <- 
   events %>% 
   filter(event_id == !!event_id) %>% 
   mutate(frame = start_frame)
-events1
+events_filt
 
-tracking1 <-
+tracking_filt <-
   tracking %>% 
-  inner_join(events1 %>% select(frame))
-tracking1
+  inner_join(events_filt %>% select(frame))
+tracking_filt
 
 # tracking %>% 
-#   inner_join(events1 %>% select(frame = end_frame)) %>% 
+#   inner_join(events_filt %>% select(frame = end_frame)) %>% 
 #   distinct(ball_x, ball_y) %>% 
 #   deframe()
 
-path_events1 <- fs::path('output', 'events1.csv')
-# write_csv(events1, path = path_events1, na = '')
-path_tracking1 <- fs::path('output', 'tracking1.csv')
-# write_csv(tracking1, path = path_tracking1, na = '')
+path_events_filt <- fs::path('output', 'events_filt.csv')
+# write_csv(events_filt, path = path_events_filt, na = '')
+path_tracking_filt <- fs::path('output', 'tracking_filt.csv')
+# write_csv(tracking_filt, path = path_tracking_filt, na = '')
 
 # plot event sequence ----
 start_event_id <- 817L
@@ -106,18 +106,18 @@ pc_slim %>%
   scale_fill_manual(values = pal) +
   scale_color_manual(values = pal)
 
-events1 <- 
+events_filt <- 
   events %>% 
   filter(event_id == !!event_id) %>% 
   mutate(frame = start_frame)
-events1
+events_filt
 
 arw <- arrow(length = unit(5, 'pt'), type = 'closed')
 
-tracking1 <-
+tracking_filt <-
   tracking %>% 
-  inner_join(events1 %>% select(frame))
-tracking1
+  inner_join(events_filt %>% select(frame))
+tracking_filt
 
 viz <-
   pc_slim %>% 
@@ -133,7 +133,7 @@ viz <-
   guides(fill = FALSE) +
   ggnewscale::new_scale_fill() +
   geom_point(
-    data = tracking1,
+    data = tracking_filt,
     aes(fill = side),
     size = 3,
     color = 'black',
@@ -142,7 +142,7 @@ viz <-
   scale_fill_manual(values = c('home' = 'red', 'away' = 'blue')) +
   # facet_wrap(~frame) +
   geom_point(
-    data = events1,
+    data = events_filt,
     # aes(fill = side),
     aes(x = start_x, y = start_y),
     size = 1,

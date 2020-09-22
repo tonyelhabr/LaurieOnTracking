@@ -236,7 +236,7 @@ get_p_intercept <- function(player, ...) {
 }
 
 # pc-assert ----
-f_assert_dppcf_dt <- function(dppcf_dt, i, is_attack = TRUE) {
+.assert_dppcf_dt <- function(dppcf_dt, i, is_attack = TRUE) {
   cnd <- dppcf_dt >= 0
   if(cnd) {
     return(invisible())
@@ -246,7 +246,7 @@ f_assert_dppcf_dt <- function(dppcf_dt, i, is_attack = TRUE) {
   warning(msg, call. = FALSE)
 }
 
-f_assert_ppcf <- function(ppcf, i, is_attack = TRUE) {
+.assert_ppcf <- function(ppcf, i, is_attack = TRUE) {
   cnd <- ppcf >= 0 & ppcf <= 1
   if(cnd) {
     return(invisible())
@@ -254,6 +254,14 @@ f_assert_ppcf <- function(ppcf, i, is_attack = TRUE) {
   prefix <- ifelse(is_attack, 'Attack', 'Defend')
   msg <- sprintf('%sing player probability (`ppcf = %.3f` at `i = %d`) must be >= 0 and <= 1', prefix, ppcf, i)
   warning(msg, call. = FALSE)
+}
+
+.truncate01 <- function(x) {
+  case_when(
+    x >= 1 ~ 1,
+    x <= 0 ~ 0,
+    TRUE ~ x
+  )
 }
 
 # `target_[xy]` will be equal to `ball_[xy]` when just calculating pitch control only at the ball.
@@ -339,7 +347,7 @@ calculate_pc_at_target <-
         
         value_ip <- dppcf_dt * int_dt
         
-        f_assert_dppcf_dt(dppcf_dt, i = i, is_attack = TRUE)
+        .assert_dppcf_dt(dppcf_dt, i = i, is_attack = TRUE)
         set_ppcf(ps_att_filt[[ip]]) <- value_ip
         
         value_i <- ppcf_att[i] + vctrs::field(ps_att_filt[[ip]], 'ppcf')
@@ -361,7 +369,7 @@ calculate_pc_at_target <-
         
         value_ip <- dppcf_dt * int_dt
         
-        f_assert_dppcf_dt(dppcf_dt, i = i, is_attack = FALSE)
+        .assert_dppcf_dt(dppcf_dt, i = i, is_attack = FALSE)
         set_ppcf(ps_def_filt[[ip]]) <- value_ip
         
         value_i <- ppcf_def[i] + vctrs::field(ps_def_filt[[ip]], 'ppcf')
@@ -388,10 +396,13 @@ calculate_pc_at_target <-
     if(i >= n_seq) {
       warning(sprintf('Integration failed to converge: `p_tot = %.3f`', p_tot), call. = FALSE)
     }
+
     
     i_last <- i - 1
-    f_assert_ppcf(ppcf_att[i_last], i, is_attack = TRUE)
-    f_assert_ppcf(ppcf_def[i_last], i, is_attack = FALSE)
+    ppcf_att[i_last] <- .truncate01(ppcf_att[i_last])
+    ppcf_def[i_last] <- .truncate01(ppcf_def[i_last])
+    .assert_ppcf(ppcf_att[i_last], i, is_attack = TRUE)
+    .assert_ppcf(ppcf_def[i_last], i, is_attack = FALSE)
     
     i_seq <- 1:i_last
     res <-
@@ -407,12 +418,7 @@ do_calculate_pc_for_event <-
            events,
            event_id,
            params = .get_default_pc_params(),
-           # n_cell_x = 50L,
-           # n_cell_y = 50L,
-           # dims = .get_dims_opta(),
-           # geom = c('contour', 'tile'),
            epv_grid = import_epv_grid()) {
-    # geom <- match.arg(geom)
     
     events_filt <- events %>% filter(event_id == !!event_id)
     start_frame <- events_filt[['start_frame']]
@@ -449,7 +455,6 @@ do_calculate_pc_for_event <-
     #     y = seq(init_y, dims[2], length.out = n_cell_y)
     #   )
     grid <- epv_grid %>% distinct(x, y)
-
     ball_x <- tracking_filt[1, ][['ball_x']]
     ball_y <- tracking_filt[1, ][['ball_y']]
 
@@ -496,13 +501,20 @@ do_calculate_pc_for_event <-
   res
 }
 
+.get_epv_rng_orig <- function(dir = c('x', 'y')) {
+  dir <- match.arg(dir)
+  switch(dir, x = c(1L, 50L), y = c(1L, 32L))
+}
+
 .rescale_tidy_epv_grid <- function(tidy_epv_grid, dims = .get_dims_opta()) {
+  x_rng_orig <- .get_epv_rng_orig('x')
+  y_rng_orig <- .get_epv_rng_orig('y')
   res <-
     tidy_epv_grid %>% 
     # I believe I double checked how this flips and it should be correct. The `X` prefixed columns are `x`. 
     mutate(
-      across(col, ~str_remove(.x, '^X') %>% as.integer() %>% .rescale(c(1L, 50L), c(0L, dims[1]))),
-      across(row, ~.rescale(.x, c(1L, 32L), c(0L, dims[2])))
+      across(col, ~str_remove(.x, '^X') %>% as.integer() %>% .rescale(x_rng_orig, c(0L + dims[1] / x_rng_orig[2], dims[1]))),
+      across(row, ~.rescale(.x, y_rng_orig, c(0L + dims[2] / y_rng_orig[2], dims[2])))
     ) %>% 
     rename(x = col, y = row)
   res
@@ -541,10 +553,16 @@ plot_epv_grid <- function(epv_grid = import_epv_grid(), attack_direction = 1, ..
   }
   viz <-
     epv_grid %>% 
-    ggplot() +
-    aes(x = x, y = y) %>% 
+    aes(x = x, y = y) +
     .pitch_gg(...) +
-    geom_tile(aes(fill = value))
+    geom_raster(
+      aes(fill = value), 
+      interpolate = TRUE,
+      hjust = 0,
+      vjust = 0,
+      alpha = 0.5
+    ) +
+    scale_fill_distiller(palette = 'Blues', direction = 1)
   viz
 }
 
@@ -602,7 +620,7 @@ do_compute_xt_added <- function(..., epv_grid = import_xt_grid()) {
   do_compute_epv_added(..., epv_grid = epv_grid)
 }
 
-do_compute_epv_added <- function(tracking, events, event_id, epv_grid = import_epv_grid(), params = .get_default_pc_params(), ...) {
+do_compute_eepv_added <- function(tracking, events, event_id, epv_grid = import_epv_grid(), params = .get_default_pc_params(), ...) {
 
   events_filt <- events %>% filter(event_id == !!event_id)
   start_frame <- events_filt[['start_frame']]
@@ -624,35 +642,58 @@ do_compute_epv_added <- function(tracking, events, event_id, epv_grid = import_e
     )
   players_start
   
-  ball_x <- tracking_start[1, ][['ball_x']]
-  ball_y <- tracking_start[1, ][['ball_y']]
+  ball_x_start <- tracking_start[1, ][['ball_x']]
+  ball_y_start <- tracking_start[1, ][['ball_y']]
   
   pc_start <-
     calculate_pc_at_target(
       players = players_start,
-      ball_x = ball_x,
-      ball_y = ball_y,
-      target_x = ball_x,
-      target_y = ball_y
+      ball_x = ball_x_start,
+      ball_y = ball_y_start,
+      target_x = ball_x_start,
+      target_y = ball_y_start
     )
   
-  ball_x <- tracking_end[1, ][['ball_x']]
-  ball_y <- tracking_end[1, ][['ball_y']]
+  ball_x_end <- tracking_end[1, ][['ball_x']]
+  ball_y_end <- tracking_end[1, ][['ball_y']]
   
   pc_end <-
     calculate_pc_at_target(
       players = players_start,
-      ball_x = ball_x,
-      ball_y = ball_y,
-      target_x = ball_x,
-      target_y = ball_y
+      ball_x = ball_x_start,
+      ball_y = ball_y_start,
+      target_x = ball_x_end,
+      target_y = ball_y_end
     )
+
+  # # Use the `tracking` ball position as start and end instead of the `event` columns since it is more precise.
+  events_filt <- events %>% filter(event_id == !!event_id)
+  assertthat::assert_that(nrow(events_filt) == 1L)
+  # start_x <- events_filt[['start_x']]
+  # start_y <- events_filt[['start_y']]
+  # end_x <- events_filt[['end_x']]
+  # end_y <- events_filt[['end_y']]
+  start_x <- ball_x_start
+  start_y <- ball_y_start
+  end_x <- ball_x_end
+  end_y <- ball_y_end
   
-  epv_change <- 
-    .do_compute_epv_added(
-      events = events, 
-      event_id = event_id, 
-      epv_grid = epv_grid
+  epv_start <- epv_grid %>% .filter_epv_grid(start_x, start_y) %>% pluck('value')
+  epv_end <- epv_grid %>% .filter_epv_grid(end_x, end_y) %>% pluck('value')
+  ppcf_att_start <- pc_start %>% pluck('ppcf_att')
+  ppcf_att_end <- pc_end %>% pluck('ppcf_att')
+  eepv_start <- epv_start * ppcf_att_start
+  eepv_end <- epv_end * ppcf_att_end
+  res <-
+    list(
+      'epv_start' = epv_start,
+      'epv_end' = epv_end,
+      'ppcf_att_start' = ppcf_att_start,
+      'ppcf_att_end' = ppcf_att_end,
+      'eepv_start' = eepv_start,
+      'eepv_end' = eepv_end,
+      'eepv_added' = eepv_end - eepv_start
     )
+  res
 }
 

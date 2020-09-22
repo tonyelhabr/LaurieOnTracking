@@ -7,7 +7,7 @@ events <- import_event_data(game_id = game_id, postprocess = TRUE)
 event <- events %>% filter(event_id == .event_id)
 .start_frame <- event[['start_frame']]
 # tracking %>% filter(frame == .start_frame) %>% select(-period, -frame, -time, -team) %>% mutate(across(where(is.double), ~round(.x, 3))) %>% clipr::write_clip()
-tracking1 %>% select(-period, -frame, -time, -team, -ball_x, -ball_y) %>% mutate(across(where(is.double), ~round(.x, 3))) %>% clipr::write_clip()
+tracking_filt %>% select(-period, -frame, -time, -team, -ball_x, -ball_y) %>% mutate(across(where(is.double), ~round(.x, 3))) %>% clipr::write_clip()
 # tony data
 tracking <-
 tibble::tribble(

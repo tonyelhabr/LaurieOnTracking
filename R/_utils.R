@@ -31,3 +31,16 @@
   params$time_to_control_def = time_to_control_veto * log(10) * sqrt(3) * params[['tti_sigma']] * pi * (1 / params[['lambda_def']])
   params
 }
+
+save_plot <-
+  function(viz,
+           file = deparse(substitute(viz)),
+           ext = 'png',
+           # dir = here::here('output'),
+           dir = here::here('output', 'figs'),
+           path = fs::path(dir, sprintf('%s.%s', file, ext)),
+           width = 8,
+           height = 8,
+           ...) {
+    ggsave(plot = viz, filename = path, width = width, height = height, type = 'cairo', ...)
+  }
