@@ -39,8 +39,11 @@ save_plot <-
            # dir = here::here('output'),
            dir = here::here('output', 'figs'),
            path = fs::path(dir, sprintf('%s.%s', file, ext)),
-           width = 8,
            height = 8,
+           scaler = 105 / 68,
+           multiplier = 1,
+           adder = -2,
+           width = height * scaler * multiplier + adder,
            ...) {
     ggsave(plot = viz, filename = path, width = width, height = height, type = 'cairo', ...)
   }

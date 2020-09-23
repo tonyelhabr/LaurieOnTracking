@@ -157,7 +157,7 @@ obj_print_data.player <- function(player) {
   res
 }
 
-get_tti.player <- function(player, x2, y2, ...) {
+.get_tti.player <- function(player, x2, y2, ...) {
   ri <- vctrs::field(player, 'reaction_time')
   x1 <- vctrs::field(player, 'x') + vctrs::field(player, 'x_v') * ri
   y1 <- vctrs::field(player, 'y') + vctrs::field(player, 'y_v') * ri
@@ -170,69 +170,68 @@ get_tti.player <- function(player, x2, y2, ...) {
   sprintf('`%s()` doesn\'t know how to handle class `%s`!', f, cls) 
 }
 
-get_tti.default <- function(player, ...) {
-  stop(.msg_cls_err(player, 'get_tti'), call. = FALSE)
+.get_tti.default <- function(player, ...) {
+  stop(.msg_cls_err(player, '.get_tti'), call. = FALSE)
 }
 
-get_tti <- function(player, ...) {
-  UseMethod('get_tti')
+.get_tti <- function(player, ...) {
+  UseMethod('.get_tti')
 }
 
-`set_tti<-.player` <- function(player, value) {
+`.set_tti<-.player` <- function(player, value) {
   vctrs::field(player, 'tti') <- value
   player
 }
 
-`set_tti<-.default` <- function(player, ...) {
-  stop(.msg_cls_err(player, 'set_tti'), call. = FALSE)
+`.set_tti<-.default` <- function(player, ...) {
+  stop(.msg_cls_err(player, '.set_tti'), call. = FALSE)
 }
 
-`set_tti<-` <- function(player, ...) {
-  UseMethod('set_tti<-')
+`.set_tti<-` <- function(player, ...) {
+  UseMethod('.set_tti<-')
 }
 
 # p_intercept ----
-get_p_intercept.player <- function(player, t, ...) {
-  den_term <- (-pi / sqrt(3) / vctrs::field(player, 'tti_sigma')) * (t - vctrs::field(player, 'tti'))
-  den <- 1 + exp(den_term)
+.get_p_intercept.player <- function(player, t, ...) {
+  den <- 1 + exp(-base::pi / sqrt(3) / vctrs::field(player, 'tti_sigma') * (t - vctrs::field(player, 'tti')))
   res <- 1 / den
   # assertthat::assert_that(res > 0, msg = sprintf('Probability to intercept (`%.2f`) cannot be < 0.', res))
   res
 }
 
-get_p_intercept.default <- function(player, ...) {
-  stop(.msg_cls_err(player, 'get_p_intercept'), call. = FALSE)
+.get_p_intercept.default <- function(player, ...) {
+  stop(.msg_cls_err(player, '.get_p_intercept'), call. = FALSE)
 }
 
-get_p_intercept <- function(player, ...) {
-  UseMethod('get_p_intercept')
+.get_p_intercept <- function(player, ...) {
+  UseMethod('.get_p_intercept')
 }
 
-`set_ppcf<-.player` <- function(player, value) {
+`.set_ppcf<-.player` <- function(player, value) {
   vctrs::field(player, 'p_intercept') <- value
   player
 }
 
-`set_p_intercept<-.default` <- function(player, ...) {
-  stop(.msg_cls_err(player, 'set_p_intercept'), call. = FALSE)
+`.set_p_intercept<-.default` <- function(player, ...) {
+  stop(.msg_cls_err(player, '.set_p_intercept'), call. = FALSE)
 }
 
-`set_p_intercept<-` <- function(player, ...) {
-  UseMethod('set_p_intercept<-')
+`.set_p_intercept<-` <- function(player, ...) {
+  UseMethod('.set_p_intercept<-')
 }
 
 # ppcf ----
-`set_ppcf<-.player` <- function(player, value) {
+`.set_ppcf<-.player` <- function(player, value) {
   vctrs::field(player, 'ppcf') <- value
   player
 }
 
-`set_ppcf<-.default` <- function(player, ...) {
-  stop(.msg_cls_err(player, 'set_ppcf'), call. = FALSE)
+`.set_ppcf<-.default` <- function(player, ...) {
+  stop(.msg_cls_err(player, '.set_ppcf'), call. = FALSE)
 }
 
-`set_ppcf<-` <- function(player, ...) {
-  UseMethod('set_ppcf<-')
+`.set_ppcf<-` <- function(player, ...) {
+  UseMethod('.set_ppcf<-')
 }
 
 # pc-assert ----
@@ -284,8 +283,8 @@ calculate_pc_at_target <-
       # Don't think `map` works for updating a value in place, so need to use a `for` loop (yikes!)
       for(i in seq_along(v)) {
         # browser()
-        value <- get_tti(v[[i]], x2 = target_x, y2 = target_y)
-        set_tti(v[[i]]) <- value
+        value <- .get_tti(v[[i]], x2 = target_x, y2 = target_y)
+        .set_tti(v[[i]]) <- value
       }
       invisible(v)
     }
@@ -343,12 +342,12 @@ calculate_pc_at_target <-
         
         lhs <- 1 - ppcf_att[ii] - ppcf_def[ii]
         p <- ps_att_filt[[ip]]
-        dppcf_dt <- lhs * get_p_intercept(p, t) * vctrs::field(p, 'lambda_att')
+        dppcf_dt <- lhs * .get_p_intercept(p, t) * vctrs::field(p, 'lambda_att')
         
         value_ip <- dppcf_dt * int_dt
         
         .assert_dppcf_dt(dppcf_dt, i = i, is_attack = TRUE)
-        set_ppcf(ps_att_filt[[ip]]) <- value_ip
+        .set_ppcf(ps_att_filt[[ip]]) <- value_ip
         
         value_i <- ppcf_att[i] + vctrs::field(ps_att_filt[[ip]], 'ppcf')
         
@@ -365,12 +364,12 @@ calculate_pc_at_target <-
         
         lhs <- 1 - ppcf_att[ii] - ppcf_def[ii]
         p <- ps_def_filt[[ip]]
-        dppcf_dt <- lhs * get_p_intercept(p, t) * vctrs::field(p, 'lambda_def')
+        dppcf_dt <- lhs * .get_p_intercept(p, t) * vctrs::field(p, 'lambda_def')
         
         value_ip <- dppcf_dt * int_dt
         
         .assert_dppcf_dt(dppcf_dt, i = i, is_attack = FALSE)
-        set_ppcf(ps_def_filt[[ip]]) <- value_ip
+        .set_ppcf(ps_def_filt[[ip]]) <- value_ip
         
         value_i <- ppcf_def[i] + vctrs::field(ps_def_filt[[ip]], 'ppcf')
         
@@ -511,10 +510,13 @@ do_calculate_pc_for_event <-
   y_rng_orig <- .get_epv_rng_orig('y')
   res <-
     tidy_epv_grid %>% 
-    # I believe I double checked how this flips and it should be correct. The `X` prefixed columns are `x`. 
     mutate(
-      across(col, ~str_remove(.x, '^X') %>% as.integer() %>% .rescale(x_rng_orig, c(0L + dims[1] / x_rng_orig[2], dims[1]))),
-      across(row, ~.rescale(.x, y_rng_orig, c(0L + dims[2] / y_rng_orig[2], dims[2])))
+      # across(col, ~str_remove(.x, '^X') %>% as.integer() %>% .rescale(x_rng_orig, c(0L + dims[1] / x_rng_orig[2], dims[1]))),
+      # across(row, ~.rescale(.x, y_rng_orig, c(0L + dims[2] / y_rng_orig[2], dims[2])))
+      # across(col, ~str_remove(.x, '^X') %>% as.integer() %>% .rescale(x_rng_orig, c(0, dims[1] - dims[1] / x_rng_orig[2]))),
+      # across(row, ~.rescale(.x, y_rng_orig, c(0, dims[2] - dims[2] / y_rng_orig[2])))
+      across(col, ~str_remove(.x, '^X') %>% as.integer() %>% .rescale(x_rng_orig, c(0 + dims[1] / x_rng_orig[2] / 2, dims[1] - dims[1] / x_rng_orig[2] / 2))),
+      across(row, ~.rescale(.x, y_rng_orig, c(0 + dims[2] / y_rng_orig[2] / 2, dims[2] - dims[2] / y_rng_orig[2] / 2)))
     ) %>% 
     rename(x = col, y = row)
   res
@@ -531,6 +533,9 @@ import_epv_grid <- memoise::memoise({
   function(path = file.path('data', 'EPV_grid.csv')) {
     # res <- read_delim(path, delim = ',')
     # res <- read.table(path, sep = ',') %>% as.matrix()
+    if(!fs::file_exists(path)) {
+      path <- 'https://raw.githubusercontent.com/Friends-of-Tracking-Data-FoTD/LaurieOnTracking/master/EPV_grid.csv'
+    }
     res <- 
       read_csv(path, col_names = FALSE) %>% 
       .tidy_epv_grid() %>% 
@@ -540,9 +545,11 @@ import_epv_grid <- memoise::memoise({
   }
 })
 
-# Reference: https://raw.githubusercontent.com/anenglishgoat/InteractivePitchControl/master/xT.csv
 import_xt_grid <- memoise::memoise({
   function(path = file.path('data', 'xT.csv')) {
+    if(!fs::file_exists(path)) {
+      path <- 'https://raw.githubusercontent.com/anenglishgoat/InteractivePitchControl/master/xT.csv'
+    }
     import_epv_grid(path = path)
   }
 })
@@ -558,8 +565,8 @@ plot_epv_grid <- function(epv_grid = import_epv_grid(), attack_direction = 1, ..
     geom_raster(
       aes(fill = value), 
       interpolate = TRUE,
-      hjust = 0,
-      vjust = 0,
+      hjust = 0.5,
+      vjust = 0.5,
       alpha = 0.5
     ) +
     scale_fill_distiller(palette = 'Blues', direction = 1)

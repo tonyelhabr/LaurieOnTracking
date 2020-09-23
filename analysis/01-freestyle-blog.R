@@ -1,39 +1,12 @@
 
-# extrafont::font_import(prompt = FALSE, pattern = 'Fira')
-extrafont::loadfonts(device = 'win', quiet = TRUE)
 library(tidyverse)
-game_id <- 2
-events <- import_event_data(game_id = game_id, postprocess = TRUE)
-tracking_home <- import_tracking_data_timed(game_id = game_id, side = 'home', overwrite = F)
-tracking_away <- import_tracking_data_timed(game_id = game_id, side = 'away', overwrite = F)
-tracking <- bind_rows(tracking_home, tracking_away)
-tracking
-
+# Data comes from post-processed Metrica sample game 2 data. I'm using a single frame here. Coordinates have been transformed to be on Opta's 100x100 unit grid.
 .event_id <- 823L
 events_filt <-
-  events %>%
-  filter(event_id == .event_id)
-events_filt
-
-.clip_tracking <- function(tracking) {
-  tracking %>% 
-    select(-period, -time, -team) %>% 
-    mutate(across(where(is.double), ~round(.x, 3))) %>% 
-    clipr::write_clip()
-}
-
-tracking_start <-
-  tracking %>%
-  inner_join(events_filt %>% select(frame = start_frame))
-tracking_start
-
-tracking_end <-
-  tracking %>%
-  inner_join(events_filt %>% select(frame = end_frame))
-tracking_end
-
-tracking_start %>% .clip_tracking()
-tracking_end %>% .clip_tracking()
+  tibble::tribble(
+    ~event_id,  ~side,  ~type, ~start_frame, ~end_frame, ~start_x, ~start_y, ~end_x, ~end_y,
+         823L, "away", "pass",       53027L,     53045L,      89L,      36L,    92L,    54L
+    )
 
 tracking_start <-
   tibble::tribble(
@@ -97,6 +70,269 @@ tracking_end <-
     53045L,  91.866,  54.338, "away",        26L,     NA,     NA,     NA,     NA
   )
 
+pal2 <- c('home' = 'red', 'away' = 'blue')
+arw <- arrow(length = unit(3, 'pt'), type = 'closed')
+# See https://stackoverflow.com/a/17313561/120898
+pts <- function(x) {
+  as.numeric(grid::convertUnit(grid::unit(x, 'pt'), 'mm'))
+}
+
+.gg_constants <- function(..., tracking = tracking_start, events = events_filt) {
+  list(
+    scale_color_manual(values = pal2),
+    geom_segment(
+      data = tracking %>% filter(!is.na(x)),
+      size = 0.5,
+      arrow = arw,
+      aes(x = x, y = y, xend = x + x_v, yend = y + y_v, color = side)
+    ),
+    ggrepel::geom_text_repel(
+      data = tracking %>% filter(!is.na(x)),
+      aes(x = x, y = y, color = side, label = player_id),
+      force = 2,
+      size = pts(8)
+    ),
+    geom_point(
+      data = tracking %>% filter(!is.na(x)),
+      aes(x = x, y = y, color = side),
+      size = 4
+    ),
+    geom_point(
+      data = events,
+      aes(x = start_x, y = start_y),
+      size = 2,
+      fill = 'black',
+      color = 'black',
+      shape = 21
+    ),
+    geom_segment(
+      data = events,
+      aes(x = start_x, y = start_y, xend = end_x, yend = end_y),
+      # curvature = -0.2
+      size = 1,
+      arrow = arw,
+      color = 'black'
+    ),
+    # labs(
+    #   caption = '**Viz:** @TonyElHabr | **Data:** Metrica Sports'
+    # ),
+    theme(
+      # plot.title = ggtext::element_markdown('Karla', face = 'bold', size = 18, color = 'gray20'),
+      # plot.title.position = 'plot',
+      # plot.subtitle = ggtext::element_markdown('Karla', face = 'bold', size = 14, color = 'gray50'),
+      plot.subtitle = element_text(size = 16, hjust = 0.5),
+      plot.margin = margin(10, 10, 10, 10) # ,
+      # plot.caption = ggtext::element_markdown('Karla', size = 14, color = 'gray20', hjust = 0),
+      # plot.caption.position = 'plot'
+    )
+  )
+}
+
+# tti and p_intercept ----
+start_frame <- events_filt[['start_frame']]
+tracking_filt <- tracking_start
+params <- .get_default_pc_params()
+
+ball_x <- tracking_filt[1, ][['ball_x']]
+ball_y <- tracking_filt[1, ][['ball_y']]
+target_x <- ball_x + 5
+target_y <- target_x
+players <-
+  tracking_filt %>%
+  pull(player_id) %>%
+  map(
+    ~ player(
+      player_id = .x,
+      events = events_filt,
+      tracking = tracking_start,
+      frame = start_frame,
+      params = params
+    )
+  )
+players
+ball_dist <- .norm(target_x, ball_x, target_y, ball_y)
+ball_time <- ball_dist / params[['average_ball_speed']]
+
+ps_att <- players %>% keep(~{vctrs::field(.x, 'is_attack')})
+ps_def <- players %>% keep(~{!vctrs::field(.x, 'is_attack')})
+
+f_update_tti <- function(v) {
+  # Don't think `map` works for updating a value in place, so need to use a `for` loop (yikes!)
+  for(i in seq_along(v)) {
+    # browser()
+    value <- .get_tti(v[[i]], x2 = target_x, y2 = target_y)
+    .set_tti(v[[i]]) <- value
+  }
+  invisible(v)
+}
+
+ps_att <- ps_att %>% f_update_tti()
+ps_def <- ps_def %>% f_update_tti()
+
+ps <-
+  c(ps_att, ps_def) %>% 
+  map_dfr(unlist) %>% 
+  mutate(
+    across(c(is_gk, is_attack, in_frame), as.logical),
+    across(c(player_id), as.integer),
+    across(c(tti, x, y, x_v, y_v, vmax, reaction_time, tti_sigma, lambda_att, lambda_def, ppcf), as.double)
+  )
+
+f_get_p_intercept <- function(v, t) {
+  res <- vector(mode = 'double', length(v))
+  for(i in seq_along(v)) {
+    # browser()
+    res[[i]] <- .get_p_intercept(v[[i]], t)
+  }
+  res
+}
+
+f_get_p_intercepts <- function(t) {
+  
+  # list('att' = ps_att, 'def' = ps_def)
+  p_intercept_att <- ps_att %>% f_get_p_intercept(t = t)
+  p_intercept_def <- ps_def %>% f_get_p_intercept(t = t)
+  res <-
+    # Would need to reverse this direction if attackers were the home team.
+    # Also, should be more robust about `player_id`s.
+    c(p_intercept_def, p_intercept_att) %>% 
+    tibble(p_intercept = ., t = as.integer(!!t)) %>% 
+    mutate(player_id = row_number()) %>% 
+    mutate(p_intercept_norm = p_intercept / sum(p_intercept, na.rm = TRUE)) %>% 
+    relocate(player_id, t)
+  res
+}
+pis <- c(6L, 8L) %>% map_dfr(f_get_p_intercepts)
+
+ps_filt <-
+  ps %>% 
+  arrange(tti) %>% 
+  slice(c(1:2)) %>% 
+  mutate(across(tti, ~scales::number(.x, accuracy = 0.1))) %>% 
+  mutate(lab = glue::glue('tti = {tti} s'))
+
+pis_filt <-
+  pis %>% 
+  inner_join(ps_filt %>% select(player_id, x, y)) %>% 
+  mutate(
+    across(matches('p_intercept'), ~scales::percent(.x, accuracy = 1))
+  ) %>% 
+  pivot_wider(names_from = t, values_from = c(p_intercept, p_intercept_norm)) %>% 
+  mutate(
+    lab = glue::glue('t = 6 s, p_intercept = {p_intercept_6}
+                         t = 8 s, p_intercept = {p_intercept_8}'),
+    lab_norm = glue::glue('t = 6 s, p_intercept = {p_intercept_norm_6}
+                              t = 8 s, p_intercept = {p_intercept_norm_8}')
+  )
+pis_filt
+target <- tibble(x = target_x, y = target_y)
+
+gg_constants <- 
+  .gg_constants(
+    tracking = tracking_start %>% inner_join(ps_filt), 
+    events = events_filt
+  )
+# Remove the event layers with the ball and pass segment.
+gg_constants[[6]] <- NULL
+gg_constants[[5]] <- NULL
+
+viz_tti_ex <-
+  ps %>% 
+  ggplot() +
+  aes(x = x, y = y) +
+  .pitch_gg() +
+  gg_constants +
+  geom_point(data = target, shape = 18, size = 4, color = 'magenta', fill = 'green') +
+  geom_segment(
+    data = ps_filt,
+    aes(xend = target$x, yend = target$y), linetype = 2
+  ) +
+  ggforce::geom_mark_circle(
+    data = ps_filt,
+    color = NA,
+    fill = NA,
+    label.buffer = unit(1, 'mm'),
+    con.cap = unit(1, 'mm'),
+    aes(label = lab, group = player_id)
+  ) +
+  theme(
+    plot.title = element_text(size = 16, hjust = 0, face = 'bold'),
+    plot.caption = element_text(size = 12, hjust = 0)
+  ) +
+  labs(
+    title = 'Time to Intercept Example',
+    caption = 'How long would it take the player to reach the marked position?'
+  )
+viz_tti_ex
+save_plot(viz = viz_tti_ex)
+
+viz_p_intercept_ex_1 <-
+  pis %>% 
+  ggplot() +
+  aes(x = x, y = y) +
+  .pitch_gg() +
+  gg_constants +
+  geom_point(data = target, shape = 18, size = 4, color = 'magenta', fill = 'green') +
+  geom_segment(
+    data = ps_filt,
+    aes(xend = target$x, yend = target$y), linetype = 2
+  ) +
+  ggforce::geom_mark_circle(
+    data = pis_filt,
+    label.buffer = unit(1, 'mm'),
+    con.cap = unit(1, 'mm'),
+    aes(label = lab, group = player_id)
+  ) +
+  theme(
+    plot.title = element_text(size = 16, hjust = 0, face = 'bold'),
+    plot.caption = element_text(size = 12, hjust = 0)
+  ) +
+  labs(
+    title = 'Probability of Intercepting Example 1',
+    caption = 'What is the probability that the player reaches the marked position within t seconds?'
+  )
+viz_p_intercept_ex_1
+save_plot(viz = viz_p_intercept_ex_1)
+
+gg_constants_norm <- 
+  .gg_constants(
+    tracking = tracking_start, 
+    events = events_filt
+  )
+gg_constants_norm[[6]] <- NULL
+gg_constants_norm[[5]] <- NULL
+
+viz_p_intercept_ex_2 <-
+  pis %>% 
+  ggplot() +
+  aes(x = x, y = y) +
+  .pitch_gg() +
+  # .gg_constants(tracking = tracking_start, events = events_filt) +
+  gg_constants_norm +
+  geom_point(data = target, shape = 18, size = 4, color = 'magenta', fill = 'green') +
+  geom_segment(
+    data = ps_filt,
+    aes(xend = target$x, yend = target$y), linetype = 2
+  ) +
+  ggforce::geom_mark_circle(
+    # geom_label(
+    data = pis_filt,
+    label.buffer = unit(1, 'mm'),
+    con.cap = unit(1, 'mm'),
+    aes(label = lab_norm, group = player_id)
+  ) +
+  theme(
+    plot.title = element_text(size = 16, hjust = 0, face = 'bold'),
+    plot.caption = ggtext::element_markdown(size = 12, hjust = 0)
+  ) +
+  labs(
+    title = 'Probability of Intercepting Example 2',
+    caption = glue::glue('What is the probability that the player reaches the marked position within t seconds **before any other player**?')
+  )
+viz_p_intercept_ex_2
+save_plot(viz = viz_p_intercept_ex_2)
+
+# pc ----
 epv_grid <- import_epv_grid()
 epv_grid
 # epv_grid %>% 
@@ -110,31 +346,9 @@ epv_grid
 #     alpha = 0.5
 #   ) +
 #   scale_fill_distiller(palette = 'Blues', direction = 1)
-  
+
 # xt_grid <- import_xt_grid()
 # xt_grid
-
-# Data comes from post-processed Metrica sample game 2 data. I'm using a single frame here. Coordinates have been transformed to be on Opta's 100x100 unit grid.
-.event_id <- 823L
-.start_frame <- 53027L
-.end_frame <- 53045L
-.ball_x_start <- 89.251
-.ball_y_start <- 36.112
-.ball_x_end <- 91.866
-.ball_y_end <- 54.338
-# The events data frame has an `end_frame` in the actual data set as well, hence the `start_` prefix for `frame`.
-events_filt <-
-  tibble(
-    event_id = .event_id,
-    start_frame = .start_frame,
-    end_frame = .end_frame,
-    start_x = .ball_x_start,
-    start_y = .ball_y_start,
-    end_x = .ball_x_end,
-    end_y = .ball_y_end,
-    side = 'away'
-  )
-
 pc_grid_epv_start <-
   do_calculate_pc_for_event(
     tracking = tracking_start,
@@ -144,75 +358,6 @@ pc_grid_epv_start <-
   )
 pc_grid_epv_start
 
-# pc_grid_xt_start <-
-#   do_calculate_pc_for_event(
-#     tracking = tracking_filt,
-#     events = events_filt %>% mutate(frame = start_frame),
-#     event_id = .event_id,
-#     epv_grid = xt_grid
-#   )
-# pc_grid_xt_start
-
-# n_rdbl <- 10L
-# pal1 <- colorRampPalette(c('red', 'white', 'blue'))(n_rdbl)
-pal2 <- c('home' = 'red', 'away' = 'blue')
-arw <- arrow(length = unit(3, 'pt'), type = 'closed')
-# See https://stackoverflow.com/a/17313561/120898
-pts <- function(x) {
-  as.numeric(grid::convertUnit(grid::unit(x, 'pt'), 'mm'))
-}
-
-.gg_constants <- function(...) {
-  list(
-    # ...,
-    scale_color_manual(values = pal2),
-    geom_segment(
-      data = tracking_filt %>% filter(!is.na(x)),
-      size = 0.5,
-      arrow = arw,
-      aes(x = x, y = y, xend = x + x_v, yend = y + y_v, color = side)
-    ),
-    ggrepel::geom_text_repel(
-      data = tracking_filt %>% filter(!is.na(x)),
-      aes(x = x, y = y, color = side, label = player_id),
-      force = 2,
-      size = pts(8)
-    ),
-    geom_point(
-      data = tracking_filt %>% filter(!is.na(x)),
-      aes(x = x, y = y, color = side),
-      size = 4
-    ),
-    geom_point(
-      data = events_filt,
-      aes(x = start_x, y = start_y),
-      size = 3,
-      fill = 'yellow',
-      color = 'black',
-      shape = 21
-    ),
-    geom_curve(
-      data = events_filt,
-      aes(x = start_x, y = start_y, xend = end_x, yend = end_y),
-      size = 1,
-      arrow = arw,
-      color = 'black',
-      curvature = -0.2
-    ),
-    theme(
-      plot.title = ggtext::element_markdown('Karla', face = 'bold', size = 18, color = 'gray20'),
-      plot.title.position = 'plot',
-      plot.subtitle = ggtext::element_markdown('Karla', face = 'bold', size = 14, color = 'gray50'),
-      plot.margin = margin(10, 10, 10, 10),
-      plot.caption = ggtext::element_markdown('Karla', size = 14, color = 'gray20', hjust = 0),
-      plot.caption.position = 'plot'
-    ),
-    labs(
-      caption = '**Viz:** @TonyElHabr | **Data:** Metrica Sports'
-    )
-  )
-}
-
 viz_pc_grid_epv_start <-
   pc_grid_epv_start %>% 
   ggplot() +
@@ -221,15 +366,15 @@ viz_pc_grid_epv_start <-
   geom_raster(
     aes(fill = ppcf_att),
     interpolate = TRUE,
-    hjust = 0,
-    vjust = 0,
+    hjust = 0.5,
+    vjust = 0.5,
     alpha = 0.4
   ) +
   scale_fill_gradient2(low = pal2[['home']], high = pal2[['away']], midpoint = 0.5) +
   scale_color_gradient2(low = pal2[['home']], high = pal2[['away']], midpoint = 0.5) +
   guides(fill = FALSE) +
   ggnewscale::new_scale_color() +
-  labs(title = glue::glue('Metrica Sample Game 2, Event {.event_id}, Pitch Control')) +
+  # labs(title = glue::glue('Metrica Sample Game 2, Event {.event_id}, Pitch Control')) +
   .gg_constants()
 viz_pc_grid_epv_start
 save_plot(viz_pc_grid_epv_start, file = sprintf('pc_%s_r', .event_id))
@@ -256,15 +401,72 @@ viz_epvxppcf_grid_start <-
   geom_raster(
     aes(fill = epv),
     interpolate = TRUE,
-    hjust = 0,
-    vjust = 0,
+    hjust = 0.5,
+    vjust = 0.5,
     alpha = 0.5
   ) +
   scale_fill_distiller(palette = 'Blues', direction = 1) +
+  # labs(
+  #   title = glue::glue('Metrica Sample Game 2, Event {.event_id}, EPV'),
+  #   subtitle = glue::glue('EPV Added: {scales::number(eepv_added[["eepv_added"]], accuracy = 0.001)}')
+  # ) +
   labs(
-    title = glue::glue('Metrica Sample Game 2, Event {.event_id}, EPV'),
     subtitle = glue::glue('EPV Added: {scales::number(eepv_added[["eepv_added"]], accuracy = 0.001)}')
   ) +
   .gg_constants()
 viz_epvxppcf_grid_start
 save_plot(viz_epvxppcf_grid_start, file = sprintf('epv_%s_r', .event_id))
+
+.dir_plots <- fs::path('output', 'figs')
+.generate_and_export_header <- function() {
+  viz_header <- 
+    tibble(
+      x = c(-2, -1.1, 0, 1.1, 2),
+      lab = c('', 'python', '', 'R', '')
+    ) %>% 
+    ggplot() +
+    aes(x = x, y = 0) +
+    geom_text(aes(label = lab), size = pts(18), fontface = 'bold', hjust = 0.5) +
+    theme_void()
+  save_plot(viz_header, file = 'header', height = 0.5, width = 16)
+  viz_header
+}
+
+.import_png <- function(event_id, type, lang = c('python', 'r')) {
+  lang <- match.arg(lang)
+  event_id <- ifelse(lang == 'python', event_id - 1L, event_id)
+  path <- fs::path(.dir_plots, sprintf('%s_%s_%s.png', type, event_id, lang))
+  magick::image_read(path)
+}
+
+.import_png_header <- function() {
+  path <- fs::path(.dir_plots, sprintf('header.png'))
+  magick::image_read(path)
+}
+
+.png_scale <- function(img, dpi = 96, width = 8, height = 10, geometry = sprintf('%dx%d', width * dpi, height * dpi)) {
+  magick::image_scale(img, geometry = geometry)
+}
+
+append_plots <- function(event_id, type = c('pc', 'epv'))  {
+  # event_id = .event_id
+  # type = 'pc'
+  type <- match.arg(type)
+  viz_header <- .import_png_header()
+  viz_py <- .import_png(event_id, type = type, lang = 'python')
+  viz_r <- .import_png(event_id, type = type, lang = 'r')
+  res <- magick::image_append(c(.png_scale(viz_py), .png_scale(viz_r)))
+  # res <- magick::image_append(c(.png_scale(viz_header, height = 0.5, width = 16), res), stack = TRUE)
+  img_info <- magick::image_info(res)
+  # magick::image_info(viz_header)
+  # h <- img_info$height
+  w <- img_info$width
+  res <- magick::image_append(c(.png_scale(viz_header, geometry = sprintf('%dx%d', w, w)), res), stack = TRUE)
+  path <- fs::path(.dir_plots, sprintf('viz_%s_%s_combined.png', type, event_id))
+  magick::image_write(res, path = path)
+  res
+}
+
+.generate_and_export_header()
+viz_pc_append <- append_plots(event_id = .event_id, type = 'pc')
+viz_epv_append <- append_plots(event_id = .event_id, type = 'epv')
