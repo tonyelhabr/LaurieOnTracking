@@ -1,6 +1,6 @@
 
 library(tidyverse)
-# Data comes from post-processed Metrica sample game 2 data. I'm using a single frame here. Coordinates have been transformed to be on Opta's 100x100 unit grid.
+
 .event_id <- 823L
 events_filt <-
   tibble::tribble(
