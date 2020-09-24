@@ -3,9 +3,32 @@
   c(100, 100)
 }
 
+.get_dims_actual <- function() {
+  c(105, 68)
+}
+
+# TODO: Change `dims` to `rng`?
+.get_valid_coords <- function() {
+  c('x', 'y')
+}
+
+.validate_coord <- function(coord) {
+  match.arg(coord)
+}
+
+.get_rng_actual <- function(coord = .get_valid_coords()) {
+  .validate_coord(coord)
+  switch(coord, x = c(0, 105), y = c(0, 68))
+}
+
+.rescale <- function(x, rng1, rng2) {
+  rng2[1] + ((x - rng1[1]) * (rng2[2] - rng2[1])) / (rng1[2] - rng1[1])
+}
+
 .get_valid_sides <- function() {
   c('away', 'home')
 }
+
 .validate_side <- function(x = .get_valid_sides()) {
   match.arg(x)
 }

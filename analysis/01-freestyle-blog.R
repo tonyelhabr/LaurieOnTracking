@@ -5,70 +5,72 @@ library(tidyverse)
 events_filt <-
   tibble::tribble(
     ~event_id,  ~side,  ~type, ~start_frame, ~end_frame, ~start_x, ~start_y, ~end_x, ~end_y,
-         823L, "away", "pass",       53027L,     53045L,      89L,      36L,    92L,    54L
-    )
+    823L, "away", "pass",       53027L,     53045L,    93.45,    24.48,   96.6,  36.72
+  )
 
 tracking_start <-
   tibble::tribble(
-    ~frame, ~ball_x, ~ball_y,  ~side, ~player_id,     ~x,     ~y,   ~x_v,   ~y_v,
-    53027L,  89.251,  36.112, "home",         1L, 86.403, 57.897,  5.625, -5.861,
-    53027L,  89.251,  36.112, "home",         2L, 90.569, 39.919,  1.429, -2.975,
-    53027L,  89.251,  36.112, "home",         3L, 91.436, 34.291,   1.35,  3.521,
-    53027L,  89.251,  36.112, "home",         4L, 87.993, 22.997,  0.957,  5.107,
-    53027L,  89.251,  36.112, "home",         5L,  79.96, 36.311,  4.036,  1.764,
-    53027L,  89.251,  36.112, "home",         6L,  78.28, 52.395,  3.707, -0.911,
-    53027L,  89.251,  36.112, "home",         7L, 81.707, 25.492,  1.621,  2.239,
-    53027L,  89.251,  36.112, "home",         8L, 72.437, 73.768,  1.921, -0.725,
-    53027L,  89.251,  36.112, "home",         9L, 58.304, 37.277,  0.821, -1.132,
-    53027L,  89.251,  36.112, "home",        10L, 56.848, 51.611,  0.857, -0.843,
-    53027L,  89.251,  36.112, "home",        11L,  97.66, 47.477, -0.293,  0.918,
-    53027L,  89.251,  36.112, "home",        12L,     NA,     NA,     NA,     NA,
-    53027L,  89.251,  36.112, "home",        13L,     NA,     NA,     NA,     NA,
-    53027L,  89.251,  36.112, "home",        14L,     NA,     NA,     NA,     NA,
-    53027L,  89.251,  36.112, "away",        15L, 65.766, 15.929,  2.039,  1.254,
-    53027L,  89.251,  36.112, "away",        16L, 54.231,  34.43,  2.125, -0.729,
-    53027L,  89.251,  36.112, "away",        17L, 52.172, 57.135,  1.232,   -1.1,
-    53027L,  89.251,  36.112, "away",        18L, 53.468, 78.232,  0.461,  -2.15,
-    53027L,  89.251,  36.112, "away",        19L, 83.557, 23.396,  1.368,  4.664,
-    53027L,  89.251,  36.112, "away",        20L, 68.541,  41.98,  2.793,  1.207,
-    53027L,  89.251,  36.112, "away",        21L, 58.819, 58.089,  1.221, -1.139,
-    53027L,  89.251,  36.112, "away",        22L,  75.67, 66.388,  3.482, -0.968,
-    53027L,  89.251,  36.112, "away",        23L, 89.311, 36.268,  1.589,  4.239,
-    53027L,  89.251,  36.112, "away",        24L, 90.368, 54.044,  2.754,  1.468,
-    53027L,  89.251,  36.112, "away",        25L, 20.222, 53.147,  0.125, -0.314,
-    53027L,  89.251,  36.112, "away",        26L,     NA,     NA,     NA,     NA
+    ~frame, ~ball_x, ~ball_y,  ~side, ~player_id,      ~x,     ~y,   ~x_v,   ~y_v,
+    53027L,  93.714,  24.556, "home",         1L,  90.723,  39.37,  5.906, -3.985,
+    53027L,  93.714,  24.556, "home",         2L,  95.097, 27.145,    1.5, -2.023,
+    53027L,  93.714,  24.556, "home",         3L,  96.008, 23.318,  1.418,  2.395,
+    53027L,  93.714,  24.556, "home",         4L,  92.393, 15.638,  1.005,  3.473,
+    53027L,  93.714,  24.556, "home",         5L,  83.958, 24.691,  4.238,    1.2,
+    53027L,  93.714,  24.556, "home",         6L,  82.194, 35.629,  3.893, -0.619,
+    53027L,  93.714,  24.556, "home",         7L,  85.792, 17.335,  1.703,  1.523,
+    53027L,  93.714,  24.556, "home",         8L,  76.059, 50.162,  2.018, -0.493,
+    53027L,  93.714,  24.556, "home",         9L,  61.219, 25.348,  0.863,  -0.77,
+    53027L,  93.714,  24.556, "home",        10L,   59.69, 35.095,    0.9, -0.573,
+    53027L,  93.714,  24.556, "home",        11L, 102.543, 32.284, -0.308,  0.624,
+    53027L,  93.714,  24.556, "home",        12L,      NA,     NA,     NA,     NA,
+    53027L,  93.714,  24.556, "home",        13L,      NA,     NA,     NA,     NA,
+    53027L,  93.714,  24.556, "home",        14L,      NA,     NA,     NA,     NA,
+    53027L,  93.714,  24.556, "away",        15L,  69.054, 10.832,  2.141,  0.852,
+    53027L,  93.714,  24.556, "away",        16L,  56.943, 23.412,  2.231, -0.495,
+    53027L,  93.714,  24.556, "away",        17L,  54.781, 38.852,  1.294, -0.748,
+    53027L,  93.714,  24.556, "away",        18L,  56.141, 53.198,  0.484, -1.462,
+    53027L,  93.714,  24.556, "away",        19L,  87.735, 15.909,  1.436,  3.172,
+    53027L,  93.714,  24.556, "away",        20L,  71.968, 28.546,  2.933,  0.821,
+    53027L,  93.714,  24.556, "away",        21L,   61.76, 39.501,  1.283, -0.775,
+    53027L,  93.714,  24.556, "away",        22L,  79.454, 45.144,  3.656, -0.658,
+    53027L,  93.714,  24.556, "away",        23L,  93.777, 24.662,  1.669,  2.883,
+    53027L,  93.714,  24.556, "away",        24L,  94.886,  36.75,  2.891,  0.998,
+    53027L,  93.714,  24.556, "away",        25L,  21.233,  36.14,  0.131, -0.214,
+    53027L,  93.714,  24.556, "away",        26L,      NA,     NA,     NA,     NA
   )
+
 
 tracking_end <-
   tibble::tribble(
-    ~frame, ~ball_x, ~ball_y,  ~side, ~player_id,     ~x,     ~y,   ~x_v,   ~y_v,
-    53045L,  91.866,  54.338, "home",         1L, 90.206,  53.76,  5.046, -5.186,
-    53045L,  91.866,  54.338, "home",         2L,  91.37, 39.101,  0.829, -0.639,
-    53045L,  91.866,  54.338, "home",         3L,  92.54,  37.71,  1.743,  5.371,
-    53045L,  91.866,  54.338, "home",         4L, 88.743, 26.465,  1.161,  4.896,
-    53045L,  91.866,  54.338, "home",         5L, 82.659, 37.861,  3.611,  2.382,
-    53045L,  91.866,  54.338, "home",         6L, 80.937, 51.901,  3.725, -0.421,
-    53045L,  91.866,  54.338, "home",         7L,  82.47, 27.153,  0.829,  2.232,
-    53045L,  91.866,  54.338, "home",         8L, 73.762, 73.402,  1.796, -0.482,
-    53045L,  91.866,  54.338, "home",         9L, 58.898, 36.508,  0.829, -0.975,
-    53045L,  91.866,  54.338, "home",        10L,  57.43, 50.998,    0.8, -0.832,
-    53045L,  91.866,  54.338, "home",        11L, 97.577, 48.748, -0.096,  2.054,
-    53045L,  91.866,  54.338, "home",        12L,     NA,     NA,     NA,     NA,
-    53045L,  91.866,  54.338, "home",        13L,     NA,     NA,     NA,     NA,
-    53045L,  91.866,  54.338, "home",        14L,     NA,     NA,     NA,     NA,
-    53045L,  91.866,  54.338, "away",        15L, 66.976, 16.847,  1.536,  1.311,
-    53045L,  91.866,  54.338, "away",        16L, 55.677, 34.073,  1.961, -0.361,
-    53045L,  91.866,  54.338, "away",        17L, 52.971, 56.375,  1.089,  -0.95,
-    53045L,  91.866,  54.338, "away",        18L, 53.816, 76.916,  0.489, -1.796,
-    53045L,  91.866,  54.338, "away",        19L, 84.534,  26.64,  1.257,  4.218,
-    53045L,  91.866,  54.338, "away",        20L, 70.519, 42.628,  2.696,  0.832,
-    53045L,  91.866,  54.338, "away",        21L, 59.563, 57.312,  0.964, -1.032,
-    53045L,  91.866,  54.338, "away",        22L, 78.192, 65.947,  3.461, -0.482,
-    53045L,  91.866,  54.338, "away",        23L, 89.896, 38.217,  0.286,  2.061,
-    53045L,  91.866,  54.338, "away",        24L, 91.884, 54.468,  1.804,  0.214,
-    53045L,  91.866,  54.338, "away",        25L, 20.257,   53.1,  0.039,      0,
-    53045L,  91.866,  54.338, "away",        26L,     NA,     NA,     NA,     NA
+    ~frame, ~ball_x, ~ball_y,  ~side, ~player_id,      ~x,     ~y,   ~x_v,   ~y_v,
+    53045L,  96.459,   36.95, "home",         1L,  94.716, 36.557,  5.299, -3.526,
+    53045L,  96.459,   36.95, "home",         2L,  95.938, 26.589,   0.87, -0.435,
+    53045L,  96.459,   36.95, "home",         3L,  97.167, 25.643,   1.83,  3.653,
+    53045L,  96.459,   36.95, "home",         4L,   93.18, 17.996,  1.219,   3.33,
+    53045L,  96.459,   36.95, "home",         5L,  86.792, 25.745,  3.791,   1.62,
+    53045L,  96.459,   36.95, "home",         6L,  84.984, 35.293,  3.911, -0.287,
+    53045L,  96.459,   36.95, "home",         7L,  86.594, 18.464,   0.87,  1.518,
+    53045L,  96.459,   36.95, "home",         8L,   77.45, 49.913,  1.886, -0.328,
+    53045L,  96.459,   36.95, "home",         9L,  61.843, 24.825,   0.87, -0.663,
+    53045L,  96.459,   36.95, "home",        10L,  60.302, 34.679,   0.84, -0.566,
+    53045L,  96.459,   36.95, "home",        11L, 102.456, 33.149, -0.101,  1.396,
+    53045L,  96.459,   36.95, "home",        12L,      NA,     NA,     NA,     NA,
+    53045L,  96.459,   36.95, "home",        13L,      NA,     NA,     NA,     NA,
+    53045L,  96.459,   36.95, "home",        14L,      NA,     NA,     NA,     NA,
+    53045L,  96.459,   36.95, "away",        15L,  70.325, 11.456,  1.612,  0.891,
+    53045L,  96.459,   36.95, "away",        16L,  58.461,  23.17,  2.059, -0.245,
+    53045L,  96.459,   36.95, "away",        17L,   55.62, 38.335,  1.144, -0.646,
+    53045L,  96.459,   36.95, "away",        18L,  56.507, 52.303,  0.514, -1.222,
+    53045L,  96.459,   36.95, "away",        19L,  88.761, 18.115,   1.32,  2.868,
+    53045L,  96.459,   36.95, "away",        20L,  74.045, 28.987,  2.831,  0.566,
+    53045L,  96.459,   36.95, "away",        21L,  62.541, 38.972,  1.012, -0.702,
+    53045L,  96.459,   36.95, "away",        22L,  82.102, 44.844,  3.634, -0.328,
+    53045L,  96.459,   36.95, "away",        23L,  94.391, 25.988,    0.3,  1.401,
+    53045L,  96.459,   36.95, "away",        24L,  96.478, 37.038,  1.894,  0.146,
+    53045L,  96.459,   36.95, "away",        25L,   21.27, 36.108,  0.041,      0,
+    53045L,  96.459,   36.95, "away",        26L,      NA,     NA,     NA,     NA
   )
+
 
 pal2 <- c('home' = 'red', 'away' = 'blue')
 arw <- arrow(length = unit(3, 'pt'), type = 'closed')
@@ -135,8 +137,8 @@ params <- .get_default_pc_params()
 
 ball_x <- tracking_filt[1, ][['ball_x']]
 ball_y <- tracking_filt[1, ][['ball_y']]
-target_x <- ball_x + 5
-target_y <- target_x
+target_x <- 94
+target_y <- 63
 players <-
   tracking_filt %>%
   pull(player_id) %>%
@@ -202,7 +204,7 @@ f_get_p_intercepts <- function(t) {
     relocate(player_id, t)
   res
 }
-pis <- c(6L, 8L) %>% map_dfr(f_get_p_intercepts)
+pis <- c(5L, 6L) %>% map_dfr(f_get_p_intercepts)
 
 ps_filt <-
   ps %>% 
@@ -219,10 +221,10 @@ pis_filt <-
   ) %>% 
   pivot_wider(names_from = t, values_from = c(p_intercept, p_intercept_norm)) %>% 
   mutate(
-    lab = glue::glue('t = 6 s, p_intercept = {p_intercept_6}
-                         t = 8 s, p_intercept = {p_intercept_8}'),
-    lab_norm = glue::glue('t = 6 s, p_intercept = {p_intercept_norm_6}
-                              t = 8 s, p_intercept = {p_intercept_norm_8}')
+    lab = glue::glue('t = 5 s, p_intercept = {p_intercept_5}
+                         t = 6 s, p_intercept = {p_intercept_6}'),
+    lab_norm = glue::glue('t = 5 s, p_intercept = {p_intercept_norm_5}
+                              t = 6 s, p_intercept = {p_intercept_norm_6}')
   )
 pis_filt
 target <- tibble(x = target_x, y = target_y)
@@ -240,7 +242,7 @@ viz_tti_ex <-
   ps %>% 
   ggplot() +
   aes(x = x, y = y) +
-  .pitch_gg() +
+  .gg_pitch() +
   gg_constants +
   geom_point(data = target, shape = 18, size = 4, color = 'magenta', fill = 'green') +
   geom_segment(
@@ -253,6 +255,7 @@ viz_tti_ex <-
     fill = NA,
     label.buffer = unit(1, 'mm'),
     con.cap = unit(1, 'mm'),
+    label.fontsize = 14,
     aes(label = lab, group = player_id)
   ) +
   theme(
@@ -270,7 +273,7 @@ viz_p_intercept_ex_1 <-
   pis %>% 
   ggplot() +
   aes(x = x, y = y) +
-  .pitch_gg() +
+  .gg_pitch() +
   gg_constants +
   geom_point(data = target, shape = 18, size = 4, color = 'magenta', fill = 'green') +
   geom_segment(
@@ -281,6 +284,7 @@ viz_p_intercept_ex_1 <-
     data = pis_filt,
     label.buffer = unit(1, 'mm'),
     con.cap = unit(1, 'mm'),
+    label.fontsize = 14,
     aes(label = lab, group = player_id)
   ) +
   theme(
@@ -306,8 +310,7 @@ viz_p_intercept_ex_2 <-
   pis %>% 
   ggplot() +
   aes(x = x, y = y) +
-  .pitch_gg() +
-  # .gg_constants(tracking = tracking_start, events = events_filt) +
+  .gg_pitch() +
   gg_constants_norm +
   geom_point(data = target, shape = 18, size = 4, color = 'magenta', fill = 'green') +
   geom_segment(
@@ -319,6 +322,7 @@ viz_p_intercept_ex_2 <-
     data = pis_filt,
     label.buffer = unit(1, 'mm'),
     con.cap = unit(1, 'mm'),
+    label.fontsize = 14,
     aes(label = lab_norm, group = player_id)
   ) +
   theme(
@@ -338,7 +342,7 @@ epv_grid
 # epv_grid %>% 
 #   ggplot() +
 #   aes(x = x, y = y) +
-#   .pitch_gg() +
+#   .gg_pitch() +
 #   geom_raster(
 #     aes(fill = value), 
 #     hjust = 0,
@@ -362,7 +366,7 @@ viz_pc_grid_epv_start <-
   pc_grid_epv_start %>% 
   ggplot() +
   aes(x = x, y = y) +
-  .pitch_gg() +
+  .gg_pitch() +
   geom_raster(
     aes(fill = ppcf_att),
     interpolate = TRUE,
@@ -397,7 +401,7 @@ viz_epvxppcf_grid_start <-
   arrange(desc(epv)) %>% 
   ggplot() +
   aes(x = x, y = y) +
-  .pitch_gg() +
+  .gg_pitch() +
   geom_raster(
     aes(fill = epv),
     interpolate = TRUE,
@@ -470,3 +474,7 @@ append_plots <- function(event_id, type = c('pc', 'epv'))  {
 .generate_and_export_header()
 viz_pc_append <- append_plots(event_id = .event_id, type = 'pc')
 viz_epv_append <- append_plots(event_id = .event_id, type = 'epv')
+
+tracking_start %>% 
+  clipr::write_clip()
+knitr::wr

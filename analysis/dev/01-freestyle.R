@@ -54,7 +54,7 @@ viz <-
   tracking_filt %>% 
   ggplot() +
   aes(x = x, y = y) +
-  .pitch_gg() +
+  .gg_pitch() +
   geom_point(
     data = tracking_filt %>% filter(!is.na(x)) %>% filter(player == 11L),
     aes(fill = side),
@@ -101,7 +101,7 @@ pal <- colorRampPalette(c('red', 'white', 'blue'))(10)
 pc_slim %>% 
   ggplot() +
   aes(x = x - 1, y = y - 1, z = ppcf_att) +
-  .pitch_gg() +
+  .gg_pitch() +
   geom_contour_filled(aes(fill = ..level.., color = ..level..), alpha = 0.7) +
   scale_fill_manual(values = pal) +
   scale_color_manual(values = pal)
@@ -123,7 +123,7 @@ viz <-
   pc_slim %>% 
   ggplot() +
   aes(x, y) +
-  .pitch_gg() +
+  .gg_pitch() +
   geom_tile(aes(fill = ppcf_att), alpha = 0.7) +
   scale_fill_gradient2(
     low = 'red', 

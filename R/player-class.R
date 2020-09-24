@@ -487,10 +487,6 @@ do_calculate_pc_for_event <-
   }
 
 # epv ----
-.rescale <- function(x, rng1, rng2) {
-  rng2[1] + ((x - rng1[1]) * (rng2[2] - rng2[1])) / (rng1[2] - rng1[1])
-}
-
 .tidy_epv_grid <- function(epv_grid) {
   res <-
     epv_grid %>% 
@@ -505,7 +501,7 @@ do_calculate_pc_for_event <-
   switch(dir, x = c(1L, 50L), y = c(1L, 32L))
 }
 
-.rescale_tidy_epv_grid <- function(tidy_epv_grid, dims = .get_dims_opta()) {
+.rescale_tidy_epv_grid <- function(tidy_epv_grid, dims = .get_dims_actual()) {
   x_rng_orig <- .get_epv_rng_orig('x')
   y_rng_orig <- .get_epv_rng_orig('y')
   res <-
@@ -530,7 +526,7 @@ do_calculate_pc_for_event <-
 }
 
 import_epv_grid <- memoise::memoise({
-  function(path = file.path('data', 'EPV_grid.csv')) {
+  function(path = file.path('data', 'EPV_grid.csv'), dims = .get_dims_actual()) {
     # res <- read_delim(path, delim = ',')
     # res <- read.table(path, sep = ',') %>% as.matrix()
     if(!fs::file_exists(path)) {
@@ -539,18 +535,18 @@ import_epv_grid <- memoise::memoise({
     res <- 
       read_csv(path, col_names = FALSE) %>% 
       .tidy_epv_grid() %>% 
-      .rescale_tidy_epv_grid() %>% 
+      .rescale_tidy_epv_grid(dims = dims) %>% 
       .add_grid_id_cols()
     res
   }
 })
 
 import_xt_grid <- memoise::memoise({
-  function(path = file.path('data', 'xT.csv')) {
+  function(path = file.path('data', 'xT.csv'), dims = dims) {
     if(!fs::file_exists(path)) {
       path <- 'https://raw.githubusercontent.com/anenglishgoat/InteractivePitchControl/master/xT.csv'
     }
-    import_epv_grid(path = path)
+    import_epv_grid(path = path, dims = dims)
   }
 })
 
@@ -561,7 +557,7 @@ plot_epv_grid <- function(epv_grid = import_epv_grid(), attack_direction = 1, ..
   viz <-
     epv_grid %>% 
     aes(x = x, y = y) +
-    .pitch_gg(...) +
+    .gg_pitch(...) +
     geom_raster(
       aes(fill = value), 
       interpolate = TRUE,

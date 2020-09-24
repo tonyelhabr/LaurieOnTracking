@@ -7,7 +7,7 @@
   'output'
 }
 
-.to_opta_coordinates <- function(data, dims = .get_dims_opta()) {
+.to_coords <- function(data, dims) {
   res <-
     data %>%
     mutate(
@@ -18,35 +18,66 @@
   res
 }
 
+# .to_coords_opta <- function(data, dims = .get_dims_opta()) {
+#   .to_coords(data, dims)
+# }
+# 
+# .to_coords_actual <- function(data, dims = .get_dims_actual()) {
+#   .to_coords(data, dims)
+# }
+
+# TODO: Make `.to_coords()` more robust by making it `.rescale_xy()`, which allows for non-zero starting point (i.e. don't rely on input data being on 0-1 scale).
+.rescale_xy <- function(data, rng_x = .gen_rng_actual('x'), rng_y = .get_rng_actual('y')) {
+  res <-
+    data %>%
+    mutate(
+      across(matches('x$'), ~.rescale(.x, c(0, 1), rng_x)),
+      across(matches('y$'), ~.rescale(-1 * .x, c(0, 1), rng_y))
+    )
+  res
+}
+
+.nan_to_na <- function(data, ..., .na = NA_real_) {
+  res <-
+    data %>% 
+    mutate(across(..., ~if_else(is.nan(.x), .na, .x)))
+  res
+}
+
 .to_single_player_direction <- function(data) {
   res <- data %>% mutate(across(matches('^[x|y]$'), ~if_else(period == 2, -1 * .x, .x)))
   res
 }
 
-import_event_data <- function(game_id, dir = .get_dir_data(), postprocess = FALSE) {
-  path <- fs::path(dir, glue::glue('Sample_Game_{game_id}'), glue::glue('Sample_Game_{game_id}_RawEventsData.csv'))
-  res <- path %>% read_csv() %>% janitor::clean_names()
-  if(!postprocess) {
-    return(res)
+import_event_data <-
+  function(game_id,
+           dir = .get_dir_data(),
+           postprocess = FALSE,
+           dims = .get_dims_actual()) {
+    
+    path <- fs::path(dir, glue::glue('Sample_Game_{game_id}'), glue::glue('Sample_Game_{game_id}_RawEventsData.csv'))
+    res <- path %>% read_csv() %>% janitor::clean_names()
+    if(!postprocess) {
+      return(res)
+    }
+    res <- 
+      res %>% 
+      .to_coords(dims = dims) %>% 
+      .to_single_player_direction() %>% 
+      .nan_to_na(matches('^(start|end)_[xy]$')) %>% 
+      fill(start_x, start_y, .direction = 'downup') %>% 
+      mutate(
+        across(end_x, ~coalesce(.x, start_x)),
+        across(end_y, ~coalesce(.x, start_y)),
+        across(c(team, type, subtype), tolower),
+        across(c(period, matches('(frame|_s)$')), as.integer),
+        across(c(from, to), ~str_remove(.x, 'Player') %>% as.integer())
+      ) %>% 
+      rename(side = team, from_player_id = from, to_player_id = to) %>% 
+      mutate(event_id = row_number()) %>% 
+      relocate(event_id)
+    res
   }
-  res <- 
-    res %>% 
-    .to_opta_coordinates() %>% 
-    .to_single_player_direction() %>% 
-    mutate(across(matches('^(start|end)_[xy]$'), ~if_else(is.nan(.x), NA_real_, .x))) %>% 
-    fill(start_x, start_y, .direction = 'downup') %>% 
-    mutate(
-      across(end_x, ~coalesce(.x, start_x)),
-      across(end_y, ~coalesce(.x, start_y)),
-      across(c(team, type, subtype), tolower),
-      across(c(period, matches('(frame|_s)$')), as.integer),
-      across(c(from, to), ~str_remove(.x, 'Player') %>% as.integer())
-    ) %>% 
-    rename(side = team, from_player_id = from, to_player_id = to) %>% 
-    mutate(event_id = row_number()) %>% 
-    relocate(event_id)
-  res
-}
 
 .toupper1 <- function(x) {
   substr(x, 1, 1) <- toupper(substr(x, 1, 1))
@@ -122,12 +153,13 @@ import_tracking_data <-
            side = .get_valid_sides(),
            dir = .get_dir_data(),
            postprocess = TRUE,
+           dims = .get_dims_actual(),
            ...,
            overwrite = TRUE,
            dir_export = .get_dir_output(),
            basename_export = glue::glue('{side}_{game_id}_tracking.fst'),
            path_export = fs::path(dir_export, basename_export)) {
-
+    
     path_exists <- fs::file_exists(path_export)
     # browser()
     if(path_exists & !overwrite) {
@@ -140,7 +172,7 @@ import_tracking_data <-
     
     suppressWarnings(data <- read_csv(path, skip = 2))
     res_init <- data %>% .fix_tracking_names(side = side)
-
+    
     if(!postprocess) {
       return(res_init)
     }
@@ -148,7 +180,7 @@ import_tracking_data <-
     res <-
       res_init %>%
       # head(10000) %>% 
-      mutate(across(c(ball_x, ball_y), ~if_else(is.nan(.x), NA_real_, .x))) %>% 
+      .nan_to_na(c(ball_x, ball_y)) %>% 
       fill(ball_x, ball_y, .direction = 'downup') %>% 
       pivot_longer(cols = matches('^(home|away)')) %>%
       separate(name, into = c('side', 'player_id', 'coord'), sep = '_') %>%
@@ -159,7 +191,7 @@ import_tracking_data <-
       ) %>% 
       mutate(team = !!side) %>% 
       arrange(player_id, frame) %>% 
-      .to_opta_coordinates() %>% 
+      .to_coords(dims = dims) %>% 
       .add_velocity_cols()
     feather::write_feather(res, path = path_export)
     res

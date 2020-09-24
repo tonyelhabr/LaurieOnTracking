@@ -4,8 +4,8 @@
 library(tidyverse)
 game_id <- 2
 events <- import_event_data(game_id = game_id, postprocess = TRUE)
-tracking_home <- import_tracking_data_timed(game_id = game_id, side = 'home', overwrite = F)
-tracking_away <- import_tracking_data_timed(game_id = game_id, side = 'away', overwrite = F)
+tracking_home <- import_tracking_data_timed(game_id = game_id, side = 'home', overwrite = T)
+tracking_away <- import_tracking_data_timed(game_id = game_id, side = 'away', overwrite = T)
 tracking <- bind_rows(tracking_home, tracking_away)
 tracking
 
@@ -34,6 +34,6 @@ tracking_end
 
 events_filt %>% 
   select(event_id, side, type, start_frame, end_frame, matches('[xy]$')) %>% 
-  clipr::write_clip()
-tracking_start %>% .clip_tracking()
-tracking_end %>% .clip_tracking()
+  clipr::write_clip()%>% datapasta::tribble_paste()
+tracking_start %>% .clip_tracking() %>% datapasta::tribble_paste()
+tracking_end %>% .clip_tracking() %>% datapasta::tribble_paste()

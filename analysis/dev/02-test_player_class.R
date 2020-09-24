@@ -45,7 +45,7 @@ viz <-
   tracking %>% 
   ggplot() +
   aes(x = x, y = y) +
-  .pitch_gg() +
+  .gg_pitch() +
   geom_point(
     data = tracking %>% filter(!is.na(x)),
     aes(fill = side),
