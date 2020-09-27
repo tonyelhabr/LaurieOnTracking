@@ -13,7 +13,7 @@
   origin_y = 0
 )
 
-.get_pitch <- function(pitch_fill = 'white', pitch_color = 'black', limits = FALSE, dimension = .pitch_international) {
+..get_pitch <- function(pitch_fill = 'white', pitch_color = 'black', limits = FALSE, dimension = .pitch_international) {
   ggsoccer::annotate_pitch(
     dimension = dimension,
     fill = pitch_fill, 
@@ -22,7 +22,7 @@
   )
 }
 
-.gg_pitch <- function(pitch = .get_pitch(), ...) {
+.gg_pitch <- function(pitch = ..get_pitch(), ...) {
   res <-
     list(
       ...,

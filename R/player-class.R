@@ -436,23 +436,7 @@ do_calculate_pc_for_event <-
         )
       )
     players
-    
-    # dx <- dims[1] / n_cell_x
-    # dy <- dims[2] / n_cell_y
-    # 
-    # if(geom == 'tile') {
-    #   init_x <- 0 + dx / 2
-    #   init_y <- 0 + dy / 2
-    # } else if (geom == 'contour') {
-    #   init_x <- 0
-    #   init_y <- 0
-    # }
-    # # browser()
-    # grid_pc <- 
-    #   crossing(
-    #     x = seq(init_x, dims[1], length.out = n_cell_x),
-    #     y = seq(init_y, dims[2], length.out = n_cell_y)
-    #   )
+
     grid <- epv_grid %>% distinct(x, y)
     ball_x <- tracking_filt[1, ][['ball_x']]
     ball_y <- tracking_filt[1, ][['ball_y']]
@@ -492,7 +476,10 @@ do_calculate_pc_for_event <-
     epv_grid %>% 
     mutate(row = row_number()) %>% 
     relocate(row) %>% 
-    pivot_longer(-row, names_to = 'col')
+    pivot_longer(-row, names_to = 'col') %>% 
+    mutate(
+      across(col, ~str_remove(.x, '^X') %>% as.integer())
+    )
   res
 }
 
@@ -502,17 +489,22 @@ do_calculate_pc_for_event <-
 }
 
 .rescale_tidy_epv_grid <- function(tidy_epv_grid, dims = .get_dims_actual()) {
-  x_rng_orig <- .get_epv_rng_orig('x')
-  y_rng_orig <- .get_epv_rng_orig('y')
+  nms_req <- c('row', 'col', 'value')
+  assertthat::assert_that(all(nms_req %in% names(tidy_epv_grid)))
+  rngs <-
+    tidy_epv_grid %>% 
+    summarize(across(c(row, col), range)) # list(min = min, max = max))) 
+  rng_row <- rngs[['row']]
+  rng_col <- rngs[['col']]
+  assertthat::assert_that(length(rng_row) == 2L, !any(is.na(rng_row)))
+  assertthat::assert_that(length(rng_col) == 2L, !any(is.na(rng_col)))
+  hi_row <- rng_row[2]
+  hi_col <- rng_col[2]
   res <-
     tidy_epv_grid %>% 
     mutate(
-      # across(col, ~str_remove(.x, '^X') %>% as.integer() %>% .rescale(x_rng_orig, c(0L + dims[1] / x_rng_orig[2], dims[1]))),
-      # across(row, ~.rescale(.x, y_rng_orig, c(0L + dims[2] / y_rng_orig[2], dims[2])))
-      # across(col, ~str_remove(.x, '^X') %>% as.integer() %>% .rescale(x_rng_orig, c(0, dims[1] - dims[1] / x_rng_orig[2]))),
-      # across(row, ~.rescale(.x, y_rng_orig, c(0, dims[2] - dims[2] / y_rng_orig[2])))
-      across(col, ~str_remove(.x, '^X') %>% as.integer() %>% .rescale(x_rng_orig, c(0 + dims[1] / x_rng_orig[2] / 2, dims[1] - dims[1] / x_rng_orig[2] / 2))),
-      across(row, ~.rescale(.x, y_rng_orig, c(0 + dims[2] / y_rng_orig[2] / 2, dims[2] - dims[2] / y_rng_orig[2] / 2)))
+      across(col, ~.rescale(.x, !!rng_col, c(0 + dims[1] / !!hi_col / 2, dims[1] - dims[1] / !!hi_col / 2))),
+      across(row, ~.rescale(.x, !!rng_row, c(0 + dims[2] / !!hi_row / 2, dims[2] - dims[2] / !!hi_row / 2)))
     ) %>% 
     rename(x = col, y = row)
   res
@@ -542,11 +534,12 @@ import_epv_grid <- memoise::memoise({
 })
 
 import_xt_grid <- memoise::memoise({
-  function(path = file.path('data', 'xT.csv'), dims = dims) {
+  function(path = file.path('data', 'xT.csv'), dims = .get_dims_actual()) {
     if(!fs::file_exists(path)) {
       path <- 'https://raw.githubusercontent.com/anenglishgoat/InteractivePitchControl/master/xT.csv'
     }
-    import_epv_grid(path = path, dims = dims)
+    res <- import_epv_grid(path = path, dims = dims)
+    res
   }
 })
 
