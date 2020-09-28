@@ -22,7 +22,7 @@
   )
 }
 
-.gg_pitch <- function(pitch = ..get_pitch(), ...) {
+.gg_pitch <- function(pitch = ..get_pitch(), ..., aspect_ratio = 68/105) {
   res <-
     list(
       ...,
@@ -32,7 +32,7 @@
       #   ylim = ylim
       # ),
       # coord_flip(),
-      ggsoccer::theme_pitch(), # changing the default aspect ratio cuz it looks weird
+      ggsoccer::theme_pitch(aspect_ratio = aspect_ratio), # changing the default aspect ratio cuz it looks weird
       theme(legend.position = 'none')
     )
   res

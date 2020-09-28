@@ -446,3 +446,147 @@ pred %>%
   # labs(title = glue::glue('Metrica Sample Game 2, Event {.event_id}, Pitch Control')) +
   .gg_constants()
 
+f <- function(x, y, .tracking = tracking_start %>% drop_na()) {
+  .tracking %>% 
+    mutate(
+      z = sqrt((x - !!x)^2 + (y - !!y)^2)
+    ) %>% 
+    filter(z == min(z)) %>% 
+    head(1) %>% 
+    pull(side)
+}
+
+res_vor <-
+  epv_grid %>% 
+  mutate(
+    owned_by = map2_chr(x, y, f)
+  ) %>% 
+  mutate(value = if_else(owned_by == 'away', 1, 0))
+res_vor
+
+res_vor %>% 
+  ggplot() +
+  aes(x = x, y = y) +
+  .gg_pitch() +
+  geom_raster(
+    aes(fill = value),
+    interpolate = TRUE,
+    hjust = 0.5,
+    vjust = 0.5,
+    alpha = 0.4
+  ) +
+  scale_fill_gradient2(low = pal2[['home']], high = pal2[['away']], midpoint = 0.5) +
+  scale_color_gradient2(low = pal2[['home']], high = pal2[['away']], midpoint = 0.5) +
+  guides(fill = FALSE) +
+  ggnewscale::new_scale_color() +
+  # labs(title = glue::glue('Metrica Sample Game 2, Event {.event_id}, Pitch Control')) +
+  .gg_constants()
+
+bound_vor <- c(0, 105, 0, 68)
+viz <-
+  tracking_start %>% 
+  drop_na() %>% 
+  ggplot() +
+  aes(x = x, y = y) +
+  # ggsoccer::annotate_pitch(colour = 'black', fill = 'white') +
+  .gg_pitch() +
+  geom_point(
+    aes(fill = side),
+    shape = 21,
+    color = 'black',
+    size = 4,
+    alpha = 1
+  ) +
+  ggforce::geom_voronoi_tile(
+    aes(x = x, y = y, group = -1L, fill = side),
+    bound = bound_vor,
+    color = 'gray10',
+    size = 1,
+    alpha = 0.2
+  ) 
+viz
+data_list <- viz %>% ggplot_build() %>% pluck('data')
+data_list
+data <- data_list %>% pluck(length(data_list)) %>% as_tibble()
+data
+data %>% 
+  ggplot() +
+  aes(x = x, y = y) +
+  geom_point(aes(color = group)) +
+  # scale_color_manual(values = ..identity..) +
+  theme_minimal()
+
+data <- tracking_start %>% drop_na()
+bound <- c(range(data$x), range(data$y))
+vor <- deldir::deldir(data$x, data$y, rw = bound, eps = 1e-9, suppressMsge = TRUE)
+to_tile <- function(object) {
+  # try_require('deldir', 'to_tile')
+  tiles <- rbind(
+    structure(object$dirsgs[, c(1:2, 5)], names = c('x', 'y', 'group')),
+    structure(object$dirsgs[, c(1:2, 6)], names = c('x', 'y', 'group')),
+    structure(object$dirsgs[, c(3:5)], names = c('x', 'y', 'group')),
+    structure(object$dirsgs[, c(3:4, 6)], names = c('x', 'y', 'group'))
+  )
+  tiles <- unique(tiles)
+  tiles <- rbind(
+    tiles,
+    data.frame(
+      x = object$rw[c(1, 2, 2, 1)],
+      y = object$rw[c(3, 3, 4, 4)],
+      group = deldir::get.cnrind(
+        object$summary$x,
+        object$summary$y,
+        object$rw
+      )
+    )
+  )
+  tiles$theta <- atan2(
+    tiles$y - object$summary$y[tiles$group],
+    tiles$x - object$summary$x[tiles$group]
+  )
+  tiles$theta <- ifelse(tiles$theta > 0, tiles$theta, tiles$theta + 2 * pi)
+  tiles[order(tiles$group, tiles$theta), ]
+}
+clip_tiles <- function(tiles, radius, bound) {
+  if (is.null(radius) && is.null(bound)) return(tiles)
+  p <- seq(0, 2 * pi, length.out = 361)[-361]
+  circ <- list(
+    x = cos(p) * radius,
+    y = sin(p) * radius
+  )
+  ggplot2:::dapply(tiles, 'group', function(tile) {
+    final_tile <- list(x = tile$x, y = tile$y)
+    if (!is.null(radius)) {
+      circ_temp <- list(x = circ$x + tile$orig_x[1],
+                        y = circ$y + tile$orig_y[1])
+      final_tile <- polyclip::polyclip(final_tile, circ_temp, 'intersection')
+    }
+    if (!is.null(bound)) {
+      final_tile <- polyclip::polyclip(final_tile, bound, 'intersection')
+    }
+    if (length(final_tile) == 0) return(NULL)
+    ggplot2:::new_data_frame(list(
+      x = final_tile[[1]]$x,
+      y = final_tile[[1]]$y,
+      group = tile$group[1]
+    ))
+  })
+}
+bound <- c(105, 68)
+polybound <- as.data.frame(bound)
+colnames(bound) <- c('x', 'y')
+bound <- c(range(polybound$x), range(polybound$y))
+
+tiles <- to_tile(vor)
+tiles$orig_x <- data$x[vor$ind.orig[tiles$group]]
+tiles$orig_y <- data$y[vor$ind.orig[tiles$group]]
+tiles$group <- data$group[vor$ind.orig[tiles$group]]
+max.radius = NULL
+polybound = NULL
+tiles <- clip_tiles(tiles, radius = max.radius, bound = polybound)
+data$x <- NULL
+data$y <- NULL
+data <- merge(tiles, data, sort = FALSE, all.x = TRUE) %>% as_tibble()
+data
+data %>% 
+  count(player_id)
