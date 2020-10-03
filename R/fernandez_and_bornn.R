@@ -183,7 +183,7 @@ do_aggregate_pc <-
         )
       }
     }
-    browser()
+    # browser()
     res <-
       pc %>%
       select(frame, time, player_id, side, x, y, I) %>% 

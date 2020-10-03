@@ -5,12 +5,25 @@ library(tidyverse)
 library(patchwork)
 library(ggtext)
 
-.dir_proj <- here::here('data')
+.dir_data <- here::here('data')
 .dir_plot <- here::here('output', 'figs')
-fs::dir_create(.dir_proj)
+fs::dir_create(.dir_data)
 fs::dir_create(.dir_plot)
-path_data <- fs::path(.dir_proj, 'pc.rds')
-event_ids <- c(823, 1754, 1664)
+
+.dir_plot <- here::here('output', 'figs')
+path_gif <- fs::path(.dir_plot, 'pc_fb_v_spearman___fb_v_vor.gif')
+width_in <- 18L
+height_in <- 15L
+pxpi <- 96L
+width_px <- width_in * pxpi
+height_px <- height_in * pxpi
+
+path_data <- fs::path(.dir_data, 'pc.rds')
+# event_ids <- c(823, 1754, 1664)
+# event_ids <- c(1615L, 1409L, 402L, 1379L, 748L, 1506L, 468L, 87L, 985L, 1316L)
+event_ids_fast <- c(835L, 1111L, 807L, 1565L, 1048L, 960L, 1641L, 1316L, 804L, 749L)
+# event_ids_middle <- c(1615L, 1409L, 402L, 1379L, 748L)
+event_ids <- event_ids_fast
 if(!fs::file_exists(path_data)) {
   
   game_id <- 2
@@ -20,34 +33,39 @@ if(!fs::file_exists(path_data)) {
   tracking <- bind_rows(tracking_home, tracking_away)
   tracking
   
-  # TODO: Find more interesting frames.
-  # frames <- tracking %>% distinct(frame)
-  # set.seed(42L)
-  # frames_sample <- frames %>% sample_frac(0.1)
-  tracking_agg <-
-    # frames_sample %>% 
-    # inner_join(tracking) %>% 
-    tracking %>% 
-    # filter(frame >= 1000) %>% 
-    mutate(keep = frame %% 1000 == 0) %>% 
-    filter(keep) %>% 
-    select(-keep) %>% 
-    drop_na() %>% 
-    group_by(period, time, frame) %>% 
-    summarize(
-      across(c(x, y), mean)
-    ) %>% 
-    ungroup() %>% 
-    mutate(z = sqrt((x - 106 / 2)^2 + (y - 68 / 2)^2)) %>% 
-    arrange(z)
-  tracking_agg
-  
-  events
-  events %>% filter(start_frame >= 6000)
-  start_frame <- 6099L
-  event_id <- 110L
-  
-  # more setup ----
+  # # Find interesting frames.
+  # events_pass <- events %>% filter(type == 'pass')
+  # tracking_pass <-
+  #   tracking %>%
+  #   inner_join(events_pass %>% select(frame = start_frame))
+  # 
+  # tracking_pass_agg <-
+  #   # frames_sample %>%
+  #   # inner_join(tracking) %>%
+  #   tracking_pass %>%
+  #   filter(frame >= 100) %>%
+  #   # mutate(idx = row_number()) %>%
+  #   # mutate(keep = idx %% 3 == 0) %>%
+  #   # filter(keep) %>%
+  #   # select(-keep) %>%
+  #   drop_na() %>%
+  #   group_by(period, time, frame) %>%
+  #   # summarize(
+  #   #   across(c(x, y), mean)
+  #   # ) %>%
+  #   summarize(
+  #     across(c(x_v, y_v), ~quantile(.x, 0.75))
+  #   ) %>%
+  #   ungroup() %>%
+  #   # mutate(z = sqrt((x - 106 / 2)^2 + (y - 68 / 2)^2)) %>%
+  #   # arrange(z)
+  #   mutate(z = sqrt((x_v)^2 + (y_v)^2)) %>%
+  #   arrange(desc(z))
+  # tracking_pass_agg
+  # 
+  # event_ids <- tracking_pass_agg %>% head(10) %>% inner_join(events %>% select(event_id, frame = start_frame)) %>% distinct(frame, .keep_all = TRUE) %>% pull(event_id)
+  # event_ids %>% clipr::write_clip() %>% datapasta::vector_paste()
+
   pitch_grid_fb <- .get_pitch_grid(n_cell_x = 100L, n_cell_y = 100L)
   pitch_grid_spearman <- import_epv_grid() %>% select(x, y)
   
@@ -250,28 +268,29 @@ if(!fs::file_exists(path_data)) {
   pc <- read_rds(path_data)
 }
 
-pal2 <- c('home' = 'red', 'away' = 'blue')
-pal2_diff <- c('method1' = 'magenta', 'method2' = 'limegreen')
-arw <- arrow(length = unit(3, 'pt'), type = 'closed')
+.pal2 <- c('home' = 'red', 'away' = 'blue')
+.methods_valid <- c('fb', 'spearman', 'vor')
+.pal_method <- c('fb' = 'magenta', 'spearman' = 'darkorange', 'vor' = 'limegreen')
+.arw <- arrow(length = unit(3, 'pt'), type = 'closed')
 # See https://stackoverflow.com/a/17313561/120898
-pts <- function(x) {
+.pts <- function(x) {
   as.numeric(grid::convertUnit(grid::unit(x, 'pt'), 'mm'))
 }
 
 .gg_constants <- function(..., tracking, events) {
   list(
-    scale_color_manual(values = pal2),
+    scale_color_manual(values = .pal2),
     geom_segment(
       data = tracking %>% filter(!is.na(x)),
       size = 0.5,
-      arrow = arw,
+      arrow = .arw,
       aes(x = x, y = y, xend = x + x_v, yend = y + y_v, color = side)
     ),
     ggrepel::geom_text_repel(
       data = tracking %>% filter(!is.na(x)),
       aes(x = x, y = y, color = side, label = player_id),
       force = 2,
-      size = pts(8)
+      size = .pts(8)
     ),
     geom_point(
       data = tracking %>% filter(!is.na(x)),
@@ -286,17 +305,6 @@ pts <- function(x) {
       color = 'black',
       shape = 21
     ),
-    # geom_segment(
-    #   data = events,
-    #   aes(x = start_x, y = start_y, xend = end_x, yend = end_y),
-    #   # curvature = -0.2
-    #   size = 1,
-    #   arrow = arw,
-    #   color = 'black'
-    # ),
-    # labs(
-    #   caption = '**Viz:** @TonyElHabr | **Data:** Metrica Sports'
-    # ),
     theme(
       plot.title = ggtext::element_markdown('Karla', face = 'bold', size = 18, color = 'gray20', hjust = 0.5),
       # plot.title.position = 'plot',
@@ -313,8 +321,8 @@ pts <- function(x) {
   function(data,
            gg_constants,
            ...,
-           color_low = pal2[['home']],
-           color_high = pal2[['away']],
+           color_low = .pal2[['home']],
+           color_high = .pal2[['away']],
            color_midpoint = 0.5) {
     
   res <-
@@ -344,8 +352,6 @@ pts <- function(x) {
 .plot1_diff <-
   partial(
     .plot1,
-    color_low = pal2_diff[['method1']],
-    color_high = pal2_diff[['method2']],
     color_midpoint = 0,
     ... =
   )
@@ -357,115 +363,145 @@ pts <- function(x) {
     pluck(pos)
 }
 
-.methods_valid <- c('fb', 'spearman', 'vor')
 .prettify_method <- function(method) {
   case_when(
-    method == 'fb' ~ 'Fernandez & Bornn (2019)', 
-    method == 'spearman' ~ 'Spearman (2018)', 
+    method == 'fb' ~ 'Fernandez et al. (2018)', 
+    method == 'spearman' ~ 'Spearman (2017)', 
     method == 'vor' ~ 'Nearest'
   )
 }
 
 pc_wide <- pc %>% unnest_wider(pc)
-plot_h2h <-
+
+plot_h2h_v2 <-
   function(event_id,
            method_1 = 'fb',
            method_2 = 'spearman',
+           method_3 = 'vor',
            path_export = fs::path(
              .dir_plot,
-             sprintf('pc_compare_%s_%s_v_%s.png', event_id, method_1, method_2)
+             sprintf('pc_compare_%s_%s_v_%s___%s_v_%s.png', event_id, method_1, method_2, method_1, method_3)
            ),
-           width = 12L,
-           height = 10L) {
-             
-  # browser()
-  # event_id <- event_ids[2]
+           width = width_in,
+           height = height_in) {
 
-  f <- function(data, ...) {
-    data %>% 
-      filter(event_id == !!event_id) %>% 
-      .select_pull_pluck(...)
+    f <- function(data, ...) {
+      data %>% 
+        filter(event_id == !!event_id) %>% 
+        .select_pull_pluck(...)
+    }
+    
+    vals <- pc_wide %>% f(vals)
+    diffs <- pc_wide %>% f(diffs)
+    tracking_filt <- pc_wide %>% f(tracking_filt)
+    events_filt <- pc_wide %>% f(events_filt)
+    
+    suppressMessages(suppressWarnings(
+      cors <-
+        vals %>%
+        pivot_wider(names_from = method, values_from = value) %>%
+        select(-x, -y) %>%
+        corrr::correlate() %>% 
+        rename(method_1 = rowname) %>%
+        pivot_longer(-c(method_1), names_to = 'method_2', values_to = 'cor') %>%
+        filter(!is.na(cor)) %>%
+        filter(method_1 < method_2)
+    ))
+    cors
+    
+    cor_12 <- cors %>% slice(1) %>% pull(cor)
+    cor_13 <- cors %>% slice(2) %>% pull(cor)
+    
+    gg_constants <- .gg_constants(tracking = tracking_filt, events = events_filt)
+    
+    method_1_pretty <- method_1 %>% .prettify_method()
+    method_2_pretty <- method_2 %>% .prettify_method()
+    method_3_pretty <- method_3 %>% .prettify_method()
+    
+    color_1 <- .pal_method[[method_1]]
+    color_2 <- .pal_method[[method_2]]
+    color_3 <- .pal_method[[method_3]]
+    
+    viz_topleft <- 
+      vals %>% 
+      filter(method == method_1) %>% 
+      .plot1(gg_constants) +
+      labs(
+        # caption = '',
+        title = '',
+        subtitle = glue::glue('<span style="color:{color_1}">{method_1_pretty}</span>')
+      )
+
+    viz_topright <- 
+      vals %>% 
+      filter(method == method_2) %>% 
+      .plot1(gg_constants) +
+      labs(
+        # caption = '',
+        title = '',
+        subtitle = glue::glue('<span style="color:{color_2}">{method_2_pretty}</span>')
+      )
+    
+    viz_topmid <- 
+      diffs %>% 
+      filter(method_1 == !!method_1 & method_2 == !!method_2) %>% 
+      rename(value = diff) %>% 
+      .plot1_diff(gg_constants, color_low = color_1, color_high = color_2) +
+      labs(
+        # caption = '',
+        title = 'Pitch Control Comparison',
+        subtitle = glue::glue('Correlation: {scales::percent(cor_12, accuracy = 0.1)}')
+      )
+    
+    viz_botleft <-
+      viz_topleft +
+      theme(plot.caption = ggtext::element_markdown(hjust = 0.1)) +
+      labs(
+        caption = '**Viz:** @TonyElHabr | **Data:** Metrica Sports'
+      )
+
+    viz_botright <- 
+      vals %>% 
+      filter(method == method_3) %>% 
+      .plot1(gg_constants) +
+      labs(
+        caption = '',
+        subtitle = glue::glue('<span style="color:{color_3}">{method_3_pretty}</span>')
+      )
+    
+    viz_botmid <- 
+      diffs %>% 
+      filter(method_1 == !!method_1 & method_2 == !!method_3) %>% 
+      rename(value = diff) %>% 
+      .plot1_diff(gg_constants, color_low = color_1, color_high = color_3) +
+      labs(
+        subtitle = glue::glue('Correlation: {scales::percent(cor_13, accuracy = 0.1)}'),
+        caption = ''
+      )
+    
+    res <- (viz_topleft + viz_topmid + viz_topright) / (viz_botleft + viz_botmid + viz_botright)
+    ggsave(plot = res, filename = path_export, width = width, height = height, type = 'cairo')
+    res
   }
-  
-  vals <- pc_wide %>% f(vals)
-  diffs <- pc_wide %>% f(diffs)
-  tracking_filt <- pc_wide %>% f(tracking_filt)
-  events_filt <- pc_wide %>% f(events_filt)
-  
-  gg_constants <- .gg_constants(tracking = tracking_filt, events = events_filt)
-  
-  method_1_pretty <- method_1 %>% .prettify_method()
-  method_2_pretty <- method_2 %>% .prettify_method()
-  
-  color_lhs <- pal2_diff[['method1']]
-  color_rhs <- pal2_diff[['method2']]
-  
-  viz_lhs <- 
-    vals %>% 
-    filter(method == method_1) %>% 
-    .plot1(gg_constants) +
-    labs(
-      caption = 'Viz: @TonyElHabr',
-      title = glue::glue('<span style="color:{color_lhs}">{method_1_pretty}</span>')
-    )
-  viz_lhs
-  
-  viz_rhs <- 
-    vals %>% 
-    filter(method == method_2) %>% 
-    .plot1(gg_constants) +
-    labs(
-      caption = '',
-      title = glue::glue('<span style="color:{color_rhs}">{method_2_pretty}</span>')
-    )
-
-  viz_mid <- 
-    diffs %>% 
-    filter(method_1 == !!method_1 & method_2 == !!method_2) %>% 
-    rename(value = diff) %>% 
-    .plot1_diff(gg_constants) +
-    labs(
-      caption = '',
-      title = 'Pitch Control Comparison'
-    )
-  
-  viz_mid
-  res <- viz_lhs + viz_mid + viz_rhs
-  ggsave(plot = res, filename = path_export, width = width, height = height, type = 'cairo')
-  res
-}
-
-# main ----
-# pc_wide <- pc %>% unnest_wider(pc)
-# cors <-
-#   pc_wide %>% 
-#   select(event_id, vals) %>% 
-#   mutate(
-#     cors = 
-#       map(
-#         vals, 
-#         ~suppressMessages(
-#           pivot_wider(.x, names_from = method, values_from = value) %>%
-#             select(-x, -y) %>% 
-#             corrr::correlate()
-#         )
-#       )
-#   ) %>% 
-#   select(-vals) %>% 
-#   unnest(cors) %>% 
-#   rename(method_1 = rowname) %>% 
-#   pivot_longer(-c(event_id, method_1), names_to = 'method_2', values_to = 'cor') %>% 
-#   filter(!is.na(cor)) %>% 
-#   filter(method_1 < method_2)
-# cors
 
 res <-
   crossing(
-    event_id = event_ids,
-    method_1 = .methods_valid,
-    method_2 = .methods_valid
+    event_id = event_ids
   ) %>% 
-  filter(method_1 < method_2) %>% 
   # head(1) %>% 
-  mutate(res = pmap(list(event_id = event_id, method_1 = method_1, method_2 = method_2), plot_h2h))
+  mutate(res = pmap(list(event_id = event_id), plot_h2h_v2))
 res
+
+paths_viz <-
+  .dir_plot %>%
+  fs::dir_ls(regex = 'fb_v_spearman___fb_v_vor[.]png$') %>%
+  as.character()
+paths_viz
+
+gifski::gifski(
+  paths_viz,
+  gif_file = path_gif,
+  width = width_px,
+  height = height_px,
+  delay = 1
+)
